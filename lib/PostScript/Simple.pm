@@ -10,7 +10,7 @@ use PostScript::Simple::EPS;
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-$VERSION = '0.06p3';
+$VERSION = '0.06';
 
 =head1 NAME
 
@@ -462,6 +462,12 @@ sub init# {{{
     $self->{bby2} = int(($self->{ysize} * $m) / $d);
   }# }}}
 
+  if (!$self->{eps}) {
+    $self->{pssetup} .= "ll 2 ge { << /PageSize [ $self->{xsize} " .
+                        "$self->{ysize} ] /ImagingBBox null >>" .
+                        " setpagedevice } if\n";
+  }
+
 # Landscape# {{{
   if ($self->{landscape})
   {
@@ -704,7 +710,7 @@ document in memory is not cleared, and can still be extended.
 =cut
 
 
-sub _buildpage# {{{
+sub _builddocument# {{{
 {
   my $self = shift;
   my $title = shift;
@@ -744,6 +750,8 @@ sub _buildpage# {{{
   
 # Prolog Section
   push @$page, "\%\%BeginProlog\n";
+  push @$page, "/ll 1 def systemdict /languagelevel known {\n";
+  push @$page, "/ll languagelevel def } if\n";
   push @$page, \$self->{psprolog};
   push @$page, "\%\%BeginResource: PostScript::Simple\n";
   push @$page, \$self->{psfunctions};
@@ -789,7 +797,7 @@ sub output# {{{
   my $page;
   my $i;
   
-  $page = _buildpage($self, $file);
+  $page = _builddocument($self, $file);
 
   local *OUT;
   open(OUT, '>'.$file) or die("Cannot write to file $file: $!");
@@ -824,7 +832,7 @@ sub get# {{{
   my $i;
   my $doc;
   
-  $page = _buildpage($self, "PostScript::Simple generated page");
+  $page = _builddocument($self, "PostScript::Simple generated page");
   $doc = "";
   foreach $i (@$page) {
     if (ref($i) eq "SCALAR") {
@@ -1980,19 +1988,26 @@ That's the fun with using code in development!
 =head1 AUTHOR
 
 The PostScript::Simple module was created by Matthew Newton, with ideas
-and suggestions from Mark Withall.
+and suggestions from Mark Withall and many other people from around the world.
+Thanks!
 
-Contributions to the work (either code or suggestions / improvements) have been
-gratefully received from: Andreas Marcel, P Kent, Flemming Frandsen, Michael
-Tomuschat, Vladi Belperchinov-Shabanski, Eric Wilhelm, Peter Kuhn, Glen Harris.
+Please see the README file in the distribution for more information about
+contributors.
 
-Apologies if you have contributed and I have missed you... please let me know so
-I can add your name to the next release.
+Copyright (C) 2002-2003 Matthew C. Newton / Newton Computing
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, version 2.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details,
+available at http://www.gnu.org/licenses/gpl.html.
 
 =head1 SEE ALSO
 
 L<PostScript::Simple::EPS>
-L<GD>
 
 =cut
 

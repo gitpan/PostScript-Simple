@@ -1,5 +1,14 @@
 Revision history for Perl extension PostScript::Simple.
 
+0.06 - 24 June 2004
+  mcnewton@cpan.org:
+    - minor documentation changes
+
+0.06p4 - 1 April 2004
+  mcnewton@cpan.org:
+    - added /ll languagelevel check
+    - added setpagedevice for languagelevel >= 2
+
 0.06p3 - 29 March 2004
   mcnewton@cpan.org:
     - added geteps method
