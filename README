@@ -1,5 +1,10 @@
-PostScript/Simple version 0.05
-==============================
+PostScript/Simple version 0.06p1
+================================
+
+********************************************************************************
+This is a pre-release of version 0.06. Expect things to Not Work, and please
+let me know if they do (or don't!). Thanks!
+********************************************************************************
 
 PostScript::Simple allows you to have a simple method of writing PostScript
 files from Perl. It has several graphics primitives that allow lines, circles,
@@ -21,11 +26,12 @@ A module that provides compatibility with the GD module calls might also one day
 be written, so that programs may be easily be converted to produce PostScript.
 Don't hold your breath.
 
-The file examples/example.pl provides some bad examples of what this module does.
+The file examples/example.pl provides some bad examples of what this module
+does.
 
 Changes from 0.04: Watch Out! Several functions now have options passed by hash
-reference, rather than the method used before. Your programs might break!
-This way is a lot tidier... sorry if this caused any problems.
+reference, rather than the method used before. Your programs might break!  This
+way is a lot tidier... sorry if this caused any problems.
 
 For example, before:
   $p->box(10,10,20,20, 1);
@@ -50,7 +56,7 @@ To install this module type the following:
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2002 Matthew C. Newton / Newton Computing
+Copyright (C) 2002-2003 Matthew C. Newton / Newton Computing
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -66,13 +72,17 @@ ACKNOWLEDGEMENTS
 
 Thanks go to the following:
 
-  m.s.withall2@lut.ac.uk for help with the initial idea
+  m.s.withall@lut.ac.uk for help with the initial idea
   riechert@pobox.com for help with the distribution
   pkent@cpan.org for many updates and fixes
   dion@swamp.dk for updates for font encoding, text alignment and more
   michael.tomuschat@planet-interkom.de for several updates (not yet merged)
   cade@cpan.org for text rotate / align update stuff
   marty@ancient-scotland.co.uk for lots of useful discussion
+  evoisard@ieee.org for useful chats about page sizes and landscape
+  ewilhelm@azahner.com for the arc function
+  peter.m.kuehn@t-online.de for inserting ps and eps code (not yet merged)
+  astfgl@iamnota.org for circletext function and inserteps code
 
   ...and probably more, apologies if you are missing from this list and have
   contributed something.
@@ -87,7 +97,7 @@ Done:
 
   landscape seems to work ok
   xsize and ysize set fine
-  colour option works. need to alter colour->grey calculation (i know how to)
+  colour option works
   clipping works
   eps option works (but output needs slight modification save/restore etc)
   page option works. setpage allows page number/name to be changed
@@ -104,33 +114,21 @@ Done:
   font encoding for european etc.
   add dd cc and sp to units
   text rotate / align
+  import eps files into the postscript (in progress, core finished)
+  pie slices / arcs (well, arcs anyway)
 
 To-Do:
 
   PostScript "compression", i.e. /n {newpath} bind def
+  code compression using single letter dictionary defs (optional?)
   any postscript optimisation that can be done?
-  import eps files into the postscript
   hope that units are now correct... check
   postscript font support?
   define shape functions
   translate / scale / rotate functions?
-  gd wrapper module
   generate PostScript using a stack, rather than writing
     to the end of a text variable? could lead to some rather
     neat stuff (loops etc)
-  triangle function(s)
-    probably not... polygon does this
-  different line styles (dashes)?
-  code compression using single letter dictionary defs (optional?)
-  my-printer-can-play-jingle-bells-now function?
-    nope, we're not trying to write BeetHoven files...
+  different line styles (dashes)? (easy)
   ttf font support (get lost!)
-  (compare gd module for functions that we could do with)
-  pie slices / arcs
-  how about "write this out as a PDF file" option?
-    possibly, as pdf is related... nope, use pstopdf
-  write out as xfig file option?
-    nope, this is a postscript module. maybe Graphics::Vector next?
-  write out as LaTeX picture (XYPic?) file option?
-    nope, see above
 
