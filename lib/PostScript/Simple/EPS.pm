@@ -169,7 +169,8 @@ sub _getfilebbox# {{{
   open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
   SCAN: while (<EPS>)
   {
-    if (/^\%\%BoundingBox:\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/)
+    s/[\r\n]*$//; #ultimate chomp
+    if (/^\%\%BoundingBox:\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s*$/)
     {
       $$self{bbx1} = $1; 
       $$self{bby1} = $2; 
@@ -492,7 +493,7 @@ sub _get_include_data# {{{
   if ($$self{"clip"}) {
     $data .= "newpath $$self{bbx1} $$self{bby1} moveto
 $$self{bbx2} $$self{bby1} lineto $$self{bbx2} $$self{bby2} lineto
-$$self{bbx1} $$self{bby2} lineto closepath clip\n";
+$$self{bbx1} $$self{bby2} lineto closepath clip newpath\n";
   }
   if (defined $$self{"epsfile"}) {
     $data .= $$self{"epsfile"};
