@@ -10,7 +10,10 @@ use PostScript::Simple::EPS;
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-$VERSION = '0.07';
+$VERSION = '0.08';
+
+
+#-------------------------------------------------------------------------------
 
 =head1 NAME
 
@@ -75,110 +78,139 @@ None.
 =cut
 
 
-# is there another colour database that can be used instead of defining
-# this one here? what about the X-windows one? (apart from MS-Win-probs?) XXXXX
-my %pscolours = (# {{{
-  black         => "0    0    0",
-  brightred     => "1    0    0",
-  brightgreen   => "0    1    0",
-  brightblue    => "0    0    1",
-  red           => "0.8  0    0",
-  green         => "0    0.8  0",
-  blue          => "0    0    0.8",
-  darkred       => "0.5  0    0",
-  darkgreen     => "0    0.5  0",
-  darkblue      => "0    0    0.5",
-  grey10        => "0.1  0.1  0.1",
-  grey20        => "0.2  0.2  0.2",
-  grey30        => "0.3  0.3  0.3",
-  grey40        => "0.4  0.4  0.4",
-  grey50        => "0.5  0.5  0.5",
-  grey60        => "0.6  0.6  0.6",
-  grey70        => "0.7  0.7  0.7",
-  grey80        => "0.8  0.8  0.8",
-  grey90        => "0.9  0.9  0.9",
-  white         => "1    1    1",
-);# }}}
+#-------------------------------------------------------------------------------
+
+# Define some colour names
+my %pscolours = (
+  # Original colours from PostScript::Simple
+  brightred         => [255, 0,   0],   brightgreen          => [0,   255, 0],   brightblue      => [0,   0,   1],
+  red               => [204, 0,   0],   green                => [0,   204, 0],   blue            => [0,   0,   204],
+  darkred           => [127, 0,   0],   darkgreen            => [0,   127, 0],   darkblue        => [0,   0,   127],
+  grey10            => [25,  25,  25],  grey20               => [51,  51,  51],  grey30          => [76,  76,  76],
+  grey40            => [102, 102, 102], grey50               => [127, 127, 127], grey60          => [153, 153, 153],
+  grey70            => [178, 178, 178], grey80               => [204, 204, 204], grey90          => [229, 229, 229],
+  black             => [0,   0,   0],   white                => [255, 255, 255],
+
+  # X-Windows colours, unless they clash with the above (only /(dark)?(red|green|blue)/ )
+  aliceblue         => [240, 248, 255], antiquewhite         => [250, 235, 215], aqua            => [0,   255, 255],
+  aquamarine        => [127, 255, 212], azure                => [240, 255, 255], beige           => [245, 245, 220],
+  bisque            => [255, 228, 196], blanchedalmond       => [255, 255, 205], blueviolet      => [138, 43,  226],
+  brown             => [165, 42,  42],  burlywood            => [222, 184, 135], cadetblue       => [95,  158, 160],
+  chartreuse        => [127, 255, 0],   chocolate            => [210, 105, 30],  coral           => [255, 127, 80],
+  cornflowerblue    => [100, 149, 237], cornsilk             => [255, 248, 220], crimson         => [220, 20,  60],
+  cyan              => [0,   255, 255], darkcyan             => [0,   139, 139], darkgoldenrod   => [184, 134, 11],
+  darkgray          => [169, 169, 169], darkgrey             => [169, 169, 169], darkkhaki       => [189, 183, 107],
+  darkmagenta       => [139, 0,   139], darkolivegreen       => [85,  107, 47],  darkorange      => [255, 140, 0],
+  darkorchid        => [153, 50,  204], darksalmon           => [233, 150, 122], darkseagreen    => [143, 188, 143],
+  darkslateblue     => [72,  61,  139], darkslategray        => [47,  79,  79],  darkslategrey   => [47,  79,  79],
+  darkturquoise     => [0,   206, 209], darkviolet           => [148, 0,   211], deeppink        => [255, 20,  147],
+  deepskyblue       => [0,   191, 255], dimgray              => [105, 105, 105], dimgrey         => [105, 105, 105],
+  dodgerblue        => [30,  144, 255], firebrick            => [178, 34,  34],  floralwhite     => [255, 250, 240],
+  forestgreen       => [34,  139, 34],  fuchsia              => [255, 0,   255], gainsboro       => [220, 220, 220],
+  ghostwhite        => [248, 248, 255], gold                 => [255, 215, 0],   goldenrod       => [218, 165, 32],
+  gray              => [128, 128, 128], grey                 => [128, 128, 128], greenyellow     => [173, 255, 47],
+  honeydew          => [240, 255, 240], hotpink              => [255, 105, 180], indianred       => [205, 92,  92],
+  indigo            => [75,  0,   130], ivory                => [255, 240, 240], khaki           => [240, 230, 140],
+  lavender          => [230, 230, 250], lavenderblush        => [255, 240, 245], lawngreen       => [124, 252, 0],
+  lemonchiffon      => [255, 250, 205], lightblue            => [173, 216, 230], lightcoral      => [240, 128, 128],
+  lightcyan         => [224, 255, 255], lightgoldenrodyellow => [250, 250, 210], lightgray       => [211, 211, 211],
+  lightgreen        => [144, 238, 144], lightgrey            => [211, 211, 211], lightpink       => [255, 182, 193],
+  lightsalmon       => [255, 160, 122], lightseagreen        => [32,  178, 170], lightskyblue    => [135, 206, 250],
+  lightslategray    => [119, 136, 153], lightslategrey       => [119, 136, 153], lightsteelblue  => [176, 196, 222],
+  lightyellow       => [255, 255, 224], lime                 => [0,   255, 0],   limegreen       => [50,  205, 50],
+  linen             => [250, 240, 230], magenta              => [255, 0,   255], maroon          => [128, 0,   0],
+  mediumaquamarine  => [102, 205, 170], mediumblue           => [0,   0,   205], mediumorchid    => [186, 85,  211],
+  mediumpurple      => [147, 112, 219], mediumseagreen       => [60,  179, 113], mediumslateblue => [123, 104, 238],
+  mediumspringgreen => [0,   250, 154], mediumturquoise      => [72,  209, 204], mediumvioletred => [199, 21,  133],
+  midnightblue      => [25,  25,  112], mintcream            => [245, 255, 250], mistyrose       => [255, 228, 225],
+  moccasin          => [255, 228, 181], navajowhite          => [255, 222, 173], navy            => [0,   0,   128],
+  oldlace           => [253, 245, 230], olive                => [128, 128, 0],   olivedrab       => [107, 142, 35],
+  orange            => [255, 165, 0],   orangered            => [255, 69,  0],   orchid          => [218, 112, 214],
+  palegoldenrod     => [238, 232, 170], palegreen            => [152, 251, 152], paleturquoise   => [175, 238, 238],
+  palevioletred     => [219, 112, 147], papayawhip           => [255, 239, 213], peachpuff       => [255, 218, 185],
+  peru              => [205, 133, 63],  pink                 => [255, 192, 203], plum            => [221, 160, 221],
+  powderblue        => [176, 224, 230], purple               => [128, 0,   128], rosybrown       => [188, 143, 143],
+  royalblue         => [65,  105, 225], saddlebrown          => [139, 69,  19],  salmon          => [250, 128, 114],
+  sandybrown        => [244, 164, 96],  seagreen             => [46,  139, 87],  seashell        => [255, 245, 238],
+  sienna            => [160, 82,  45],  silver               => [192, 192, 192], skyblue         => [135, 206, 235],
+  slateblue         => [106, 90,  205], slategray            => [112, 128, 144], slategrey       => [112, 128, 144],
+  snow              => [255, 250, 250], springgreen          => [0,   255, 127], steelblue       => [70,  130, 180],
+  tan               => [210, 180, 140], teal                 => [0,   128, 128], thistle         => [216, 191, 216],
+  tomato            => [253, 99,  71],  turquoise            => [64,  224, 208], violet          => [238, 130, 238],
+  wheat             => [245, 222, 179], whitesmoke           => [245, 245, 245], yellow          => [255, 255, 0],
+  yellowgreen       => [154, 205, 50],
+);
 
 
 # define page sizes here (a4, letter, etc)
 # should be Properly Cased
-my %pspaper = (# {{{
-  A0                    => '2384 3370',
-  A1                    => '1684 2384',
-  A2                    => '1191 1684',
-  A3                    => "841.88976 1190.5512",
-  A4                    => "595.27559 841.88976",
-  A5                    => "420.94488 595.27559",
-  A6                    => '297 420',
-  A7                    => '210 297',
-  A8                    => '148 210',
-  A9                    => '105 148',
+my %pspaper = (
+  A0                    => [2384, 3370],
+  A1                    => [1684, 2384],
+  A2                    => [1191, 1684],
+  A3                    => [841.88976, 1190.5512],
+  A4                    => [595.27559, 841.88976],
+  A5                    => [420.94488, 595.27559],
+  A6                    => [297, 420],
+  A7                    => [210, 297],
+  A8                    => [148, 210],
+  A9                    => [105, 148],
 
-  B0                    => '2920 4127',
-  B1                    => '2064 2920',
-  B2                    => '1460 2064',
-  B3                    => '1032 1460',
-  B4                    => '729 1032',
-  B5                    => '516 729',
-  B6                    => '363 516',
-  B7                    => '258 363',
-  B8                    => '181 258',
-  B9                    => '127 181 ',
-  B10                   => '91 127',
+  B0                    => [2920, 4127],
+  B1                    => [2064, 2920],
+  B2                    => [1460, 2064],
+  B3                    => [1032, 1460],
+  B4                    => [729, 1032],
+  B5                    => [516, 729],
+  B6                    => [363, 516],
+  B7                    => [258, 363],
+  B8                    => [181, 258],
+  B9                    => [127, 181 ],
+  B10                   => [91, 127],
 
-  Executive             => '522 756',
-  Folio                 => '595 935',
-  'Half-Letter'         => '612 397',
-  Letter                => "612 792",
-  'US-Letter'           => '612 792',
-  Legal                 => '612 1008',
-  'US-Legal'            => '612 1008',
-  Tabloid               => '792 1224',
-  'SuperB'              => '843 1227',
-  Ledger                => '1224 792',
+  Executive             => [522, 756],
+  Folio                 => [595, 935],
+  'Half-Letter'         => [612, 397],
+  Letter                => [612, 792],
+  'US-Letter'           => [612, 792],
+  Legal                 => [612, 1008],
+  'US-Legal'            => [612, 1008],
+  Tabloid               => [792, 1224],
+  'SuperB'              => [843, 1227],
+  Ledger                => [1224, 792],
 
-  'Comm #10 Envelope'   => '297 684',
-  'Envelope-Monarch'    => '280 542',
-  'Envelope-DL'         => '312 624',
-  'Envelope-C5'         => '461 648',
+  'Comm #10 Envelope'   => [297, 684],
+  'Envelope-Monarch'    => [280, 542],
+  'Envelope-DL'         => [312, 624],
+  'Envelope-C5'         => [461, 648],
 
-  'EuroPostcard'        => '298 420',
-);# }}}
+  'EuroPostcard'        => [298, 420],
+);
 
 
 # The 13 standard fonts that are available on all PS 1 implementations:
-my @fonts = (# {{{
-    'Courier',
-    'Courier-Bold',
-    'Courier-BoldOblique',
-    'Courier-Oblique',
-    'Helvetica',
-    'Helvetica-Bold',
-    'Helvetica-BoldOblique',
-    'Helvetica-Oblique',
-    'Times-Roman',
-    'Times-Bold',
-    'Times-BoldItalic',
-    'Times-Italic',
-    'Symbol');# }}}
+my @fonts = (
+  'Courier', 'Courier-Bold', 'Courier-BoldOblique', 'Courier-Oblique',
+  'Helvetica', 'Helvetica-Bold', 'Helvetica-BoldOblique', 'Helvetica-Oblique',
+  'Times-Roman', 'Times-Bold', 'Times-BoldItalic', 'Times-Italic',
+  'Symbol');
 
 # define the origins for the page a document can have
 # (default is "LeftBottom")
-my %psorigin = (# {{{
-  'LeftBottom'  => '0 0',
-  'LeftTop'     => '0 -1',
-  'RightBottom' => '-1 0',
-  'RightTop'    => '-1 -1',
-);# }}}
+my %psorigin = (
+  'LeftBottom'  => [ 0,  0],
+  'LeftTop'     => [ 0, -1],
+  'RightBottom' => [-1,  0],
+  'RightTop'    => [-1, -1],
+);
 
 # define the co-ordinate direction (default is 'RightUp')
-my %psdirs = (# {{{
-  'RightUp'  => '1 1',
-  'RightDown'   => '1 -1',
-  'LeftUp'  => '-1 1',
-  'LeftDown'   => '-1 -1',
-);# }}}
+my %psdirs = (
+  'RightUp'     => [ 1,  1],
+  'RightDown'   => [ 1, -1],
+  'LeftUp'      => [-1,  1],
+  'LeftDown'    => [-1, -1],
+);
 
 
 # measuring units are two-letter acronyms as used in TeX:
@@ -193,17 +225,19 @@ my %psdirs = (# {{{
 
 #  set up the others here (sp) XXXXX
 
-my %psunits = (# {{{
-  pt   => "72 72.27",
-  pc   => "72 6.0225",
-  in   => "72 1",
-  bp   => "1 1",
-  cm   => "72 2.54",
-  mm   => "72 25.4",
-  dd   => "72 67.567",
-  cc   => "72 810.804",
-);# }}}
+my %psunits = (
+  pt   => [72, 72.27],
+  pc   => [72, 6.0225],
+  in   => [72, 1],
+  bp   => [1, 1],
+  cm   => [72, 2.54],
+  mm   => [72, 25.4],
+  dd   => [72, 67.567],
+  cc   => [72, 810.804],
+);
 
+
+#-------------------------------------------------------------------------------
 
 =head1 CONSTRUCTOR
 
@@ -322,8 +356,7 @@ used in Western Europe. The C<newpage> method should not be used.
 
 =cut
 
-
-sub new# {{{
+sub new
 {
   my ($class, %data) = @_;
   my $self = {
@@ -351,6 +384,7 @@ sub new# {{{
     pssetup        => "",
     pspages        => "",
     pstrailer      => "",
+    usedunits      => {},       # units that have been used
 
     lastfontsize   => 0,
     pspagecount    => 0,
@@ -364,8 +398,7 @@ sub new# {{{
     direction      => 'RightUp',
   };
 
-  foreach (keys %data)
-  {
+  foreach (keys %data) {
     $self->{$_} = $data{$_};
   }
 
@@ -373,94 +406,114 @@ sub new# {{{
   $self->init();
 
   return $self;
-}# }}}
+}
 
-sub init# {{{
+
+#-------------------------------------------------------------------------------
+
+sub _u
+{
+  my ($self, $u, $rev) = @_;
+
+  my $val;
+  my $unit;
+
+  # $u may be...
+  #  a simple number, in which case the current units are used
+  #  a listref of [number, "unit"], to force the unit
+  #  a string "number unit", e.g. "4 mm" or "2.4in"
+
+  if (ref($u) eq "ARRAY") {
+    $val = $$u[0];
+    $unit = $$u[1];
+    confess "Invalid array" if @$u != 2;
+  } else {
+    if ($u =~ /^\s*(\d+(?:\.\d+)?)\s*([a-z][a-z])?\s*$/) {
+      $val = $1;
+      $unit = $2 || $self->{units};
+    }
+  }
+
+  confess "Cannot determine length" unless defined $val;
+  confess "Cannot determine unit (invalid array?)" unless defined $unit;
+
+  croak "Invalid unit '$unit'" unless defined $psunits{$unit};
+
+  unless (defined $self->{usedunits}{$unit}) {
+    my ($m, $d) = @{$psunits{$unit}};
+
+    my $c = "{";
+    $c .= "$m mul " unless $m == 1;
+    $c .= "$d div " unless $d == 1;
+    $c =~ s/ $//;
+    $c .="}";
+    $self->{usedunits}{$unit} = "/u$unit $c def";
+  }
+
+  $val = $rev * $val if defined $rev;
+
+  return "$val u$unit ";
+}
+
+sub _ux
+{
+  my ($self, $d) = @_;
+
+  return $self->_u($d, $psdirs{$self->{direction}}[0]);
+}
+
+sub _uy
+{
+  my ($self, $d) = @_;
+
+  return $self->_u($d, $psdirs{$self->{direction}}[1]);
+}
+
+sub _uxy
+{
+  my ($self, $x, $y) = @_;
+
+  return $self->_ux($x) . $self->_uy($y);
+}
+
+
+sub init
 {
   my $self = shift;
 
   my ($m, $d) = (1, 1);
   my ($u, $mm);
-  my ($dx, $dy);
 
-# Units# {{{
-  if (defined $self->{units})
-  {
-    $self->{units} = lc $self->{units};
-  }
+# Units
+  $self->{units} = lc $self->{units};
 
-  if (defined($psunits{$self->{units}}))
-  {
-    ($m, $d) = split(/\s+/, $psunits{$self->{units}});
-  }
-  else
-  {
+  if (defined($psunits{$self->{units}})) {
+    ($m, $d) = @{$psunits{$self->{units}}};
+  } else {
     $self->_error( "unit '$self->{units}' undefined" );
   }
 
-  ($dx, $dy) = split(/\s+/, $psdirs{$self->{direction}});
 
-# X direction
-  $mm = $m * $dx;
-  $u = "{";
-  if ($mm != 1) { $u .= "$mm mul " }
-  if ($d != 1) { $u .= "$d div " }
-  $u =~ s/ $//;
-  $u .="}";
-  $self->{psfunctions} .= "/ux $u def\n";
-
-# Y direction
-  $mm = $m * $dy;
-  $u = "{";
-  if ($mm != 1) { $u .= "$mm mul " }
-  if ($d != 1) { $u .= "$d div " }
-  $u =~ s/ $//;
-  $u .="}";
-  $self->{psfunctions} .= "/uy $u def\n";
-
-# General unit scale (circle radius, etc)
-  $u = "{";
-  if ($m != 1) { $u .= "$m mul " }
-  if ($d != 1) { $u .= "$d div " }
-  $u =~ s/ $//;
-  $u .="}";
-  $self->{psfunctions} .= "/u $u def\n";
-
-  #$u = "{";
-  #if ($m != 1) { $u .= "$m mul " }
-  #if ($d != 1) { $u .= "$d div " }
-  #$u =~ s/ $//;
-  #$u .="}";
-  #
-  #$self->{psfunctions} .= "/u $u def\n";# }}}
-
-# Paper size# {{{
-  if (defined $self->{papersize})
-  {
+# Paper size
+  if (defined $self->{papersize}) {
     $self->{papersize} = ucfirst lc $self->{papersize};
   }
 
-  if (!defined $self->{xsize} || !defined $self->{ysize})
-  {
-    if (defined $self->{papersize} && defined $pspaper{$self->{papersize}})
-    {
-      ($self->{xsize}, $self->{ysize}) = split(/\s+/, $pspaper{$self->{papersize}});
+  if (!defined $self->{xsize} || !defined $self->{ysize}) {
+    if (defined $self->{papersize} && defined $pspaper{$self->{papersize}}) {
+      ($self->{xsize}, $self->{ysize}) = @{$pspaper{$self->{papersize}}};
       $self->{bbx2} = int($self->{xsize});
       $self->{bby2} = int($self->{ysize});
       $self->{pscomments} .= "\%\%DocumentMedia: $self->{papersize} $self->{xsize} ";
       $self->{pscomments} .= "$self->{ysize} 0 ( ) ( )\n";
-     }
-    else
-    {
+    } else {
       ($self->{xsize}, $self->{ysize}) = (100,100);
       $self->_error( "page size undefined" );
     }
-  }
-  else
-  {
+  } else {
     $self->{bbx2} = int(($self->{xsize} * $m) / $d);
     $self->{bby2} = int(($self->{ysize} * $m) / $d);
-  }# }}}
+  }
 
   if (!$self->{eps}) {
     $self->{pssetup} .= "ll 2 ge { << /PageSize [ $self->{xsize} " .
@@ -468,9 +521,8 @@ sub init# {{{
                         " setpagedevice } if\n";
   }
 
-# Landscape# {{{
-  if ($self->{landscape})
-  {
+# Landscape
+  if ($self->{landscape}) {
     my $swap;
 
     $self->{psfunctions} .= "/landscape {
@@ -488,15 +540,12 @@ sub init# {{{
 
     # for EPS files, change to landscape here, as there are no pages
     if ($self->{eps}) { $self->{pssetup} .= "landscape\n" }
-  }
-  else
-  {
+  } else {
     $self->{pscomments} .= "\%\%Orientation: Portrait\n";
-  }# }}}
+  }
   
-# Clipping# {{{
-  if ($self->{clip})
-  {
+# Clipping
+  if ($self->{clip}) {
     $self->{psfunctions} .= "/pageclip {newpath $self->{bbx1} $self->{bby1} moveto
 $self->{bbx1} $self->{bby2} lineto
 $self->{bbx2} $self->{bby2} lineto
@@ -505,23 +554,19 @@ $self->{bbx1} $self->{bby1} lineto
 closepath clip} bind def
 ";
     if ($self->{eps}) { $self->{pssetup} .= "pageclip\n" }
-  }# }}}
+  }
 
-# Font reencoding# {{{
-  if ($self->{reencode})
-  {
+# Font reencoding
+  if ($self->{reencode}) {
     my $encoding; # The name of the encoding
     my $ext;      # The extention to tack onto the std fontnames
 
-    if (ref $self->{reencode} eq 'ARRAY')
-    {
+    if (ref $self->{reencode} eq 'ARRAY') {
       die "Custom reencoding of fonts not really implemented yet, sorry...";
       $encoding = shift @{$self->{reencode}};
       $ext = shift @{$self->{reencode}};
       # TODO: Do something to add the actual encoding to the postscript code.
-    }
-    else
-    {
+    } else {
       $encoding = $self->{reencode};
       $ext = '-iso';
     }
@@ -533,7 +578,7 @@ closepath clip} bind def
 % /NewEnc BaseEnc STARTDIFFENC number or glyphname ... ENDDIFFENC -
 	counttomark 2 add -1 roll 256 array copy
 	/TempEncode exch def
-	
+
 	% pointer for sequential encodings
 	/EncodePointer 0 def
 	{
@@ -555,7 +600,7 @@ closepath clip} bind def
 			/EncodePointer exch def
 			} ifelse
 		} ifelse
-	} loop	
+	} loop
 
 	TempEncode def
 } bind def
@@ -618,18 +663,19 @@ closepath clip} bind def
 % Reencode the std fonts: 
 EOP
     
-    for my $font (@fonts)
-    {
+    for my $font (@fonts) {
       $self->{psfunctions} .= "/${font}$ext $encoding /$font REENCODEFONT\n";
     }
-  }# }}}
-}# }}}
+  }
+}
 
+
+#-------------------------------------------------------------------------------
 
 =head1 OBJECT METHODS
 
-All object methods return 1 for success or 0 in some error condition (e.g. insufficient arguments).
-Error message text is also drawn on the page.
+All object methods return 1 for success or 0 in some error condition (e.g.
+insufficient arguments). Error message text is also drawn on the page.
 
 =over 4
 
@@ -653,8 +699,7 @@ will generate five pages, numbered: 1, 2, "hello", -6, -7.
 
 =cut
 
-
-sub newpage# {{{
+sub newpage
 {
   my $self = shift;
   my $nextpage = shift;
@@ -662,26 +707,21 @@ sub newpage# {{{
   
   if (defined($nextpage)) { $self->{page} = $nextpage; }
 
-  if ($self->{eps})
-  {
-# Cannot have multiple pages in an EPS file XXXXX
+  if ($self->{eps}) {
+    # Cannot have multiple pages in an EPS file
     $self->_error("Do not use newpage for eps files!");
     return 0;
   }
 
-  if ($self->{pspagecount} != 0)
-  {
+  if ($self->{pspagecount} != 0) {
     $self->{pspages} .= "\%\%PageTrailer\npagelevel restore\nshowpage\n";
   }
 
   $self->{pspagecount} ++;
   $self->{pspages} .= "\%\%Page: $self->{page} $self->{pspagecount}\n";
-  if ($self->{page} >= 0)
-  {    
+  if ($self->{page} >= 0) {    
     $self->{page} ++;
-  }
-  else
-  {
+  } else {
     $self->{page} --;
   }
 
@@ -689,15 +729,17 @@ sub newpage# {{{
   $self->{pspages} .= "/pagelevel save def\n";
   if ($self->{landscape}) { $self->{pspages} .= "landscape\n" }
   if ($self->{clip}) { $self->{pspages} .= "pageclip\n" }
-  ($x, $y) = split(/\s+/, $psorigin{$self->{coordorigin}});
+  ($x, $y) = @{$psorigin{$self->{coordorigin}}};
   $x = $self->{xsize} if ($x < 0);
   $y = $self->{ysize} if ($y < 0);
   $self->{pspages} .= "$x $y translate\n" if (($x != 0) || ($y != 0));
   $self->{pspages} .= "\%\%EndPageSetup\n";
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<output(filename)>
 
@@ -709,8 +751,7 @@ document in memory is not cleared, and can still be extended.
 
 =cut
 
-
-sub _builddocument# {{{
+sub _builddocument
 {
   my $self = shift;
   my $title = shift;
@@ -738,12 +779,9 @@ sub _builddocument# {{{
   push @$page, "\%\%For: $user\n";
   push @$page, \$self->{pscomments};
 #  push @$page, "\%\%DocumentFonts: \n";
-  if ($self->{eps})
-  {
+  if ($self->{eps}) {
     push @$page, "\%\%BoundingBox: $self->{bbx1} $self->{bby1} $self->{bbx2} $self->{bby2}\n";
-  }
-  else
-  {
+  } else {
     push @$page, "\%\%Pages: $self->{pspagecount}\n";
   }
   push @$page, "\%\%EndComments\n";
@@ -755,15 +793,16 @@ sub _builddocument# {{{
   push @$page, \$self->{psprolog};
   push @$page, "\%\%BeginResource: PostScript::Simple\n";
   push @$page, \$self->{psfunctions};
+  foreach my $un (sort keys %{$self->{usedunits}}) {
+    push @$page, $self->{usedunits}{$un} . "\n";
+  }
   push @$page, "\%\%EndResource\n";
   push @$page, "\%\%EndProlog\n";
 
 # Setup Section
-  if (length($self->{pssetup}) || ($self->{copies} > 1))
-  {
+  if (length($self->{pssetup}) || ($self->{copies} > 1)) {
     push @$page, "\%\%BeginSetup\n";
-    if ($self->{copies} > 1)
-    {
+    if ($self->{copies} > 1) {
       push @$page, "/#copies " . $self->{copies} . " def\n";
     }
     push @$page, \$self->{pssetup};
@@ -772,25 +811,26 @@ sub _builddocument# {{{
 
 # Pages
   push @$page, \$self->{pspages};
-  if ((!$self->{eps}) && ($self->{pspagecount} > 0))
-  {
+  if ((!$self->{eps}) && ($self->{pspagecount} > 0)) {
     push @$page, "\%\%PageTrailer\n";
     push @$page, "pagelevel restore\n";
     push @$page, "showpage\n";
   }
 
 # Trailer Section
-  if (length($self->{pstrailer}))
-  {
+  if (length($self->{pstrailer})) {
     push @$page, "\%\%Trailer\n";
     push @$page, \$self->{pstrailer};
   }
   push @$page, "\%\%EOF\n";
   
   return $page;
-}# }}}
+}
 
-sub output# {{{
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+sub output
 {
   my $self = shift;
   my $file = shift || die("Must supply a filename for output");
@@ -800,7 +840,7 @@ sub output# {{{
   $page = _builddocument($self, $file);
 
   local *OUT;
-  open(OUT, '>'.$file) or die("Cannot write to file $file: $!");
+  open(OUT, '>', $file) or die("Cannot write to file $file: $!");
 
   foreach $i (@$page) {
     if (ref($i) eq "SCALAR") {
@@ -813,8 +853,10 @@ sub output# {{{
   close OUT;
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<get>
 
@@ -825,7 +867,7 @@ document in memory is not cleared, and can still be extended.
 
 =cut
 
-sub get# {{{
+sub get
 {
   my $self = shift;
   my $page;
@@ -842,8 +884,10 @@ sub get# {{{
     }
   }
   return $doc;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<geteps>
 
@@ -857,7 +901,7 @@ change these, call it yourself as below, rather than using this method.
 
 =cut
 
-sub geteps# {{{
+sub geteps
 {
   my $self = shift;
   my $page;
@@ -869,16 +913,19 @@ sub geteps# {{{
 
   $eps = new PostScript::Simple::EPS(source => $self->get);
   return $eps;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<setcolour((red, green, blue)|(name))>
 
-Sets the new drawing colour to the values specified in C<red>, C<green> and
+Sets the new drawing colour to the RGB values specified in C<red>, C<green> and
 C<blue>. The values range from 0 to 255.
 
 Alternatively, a colour name may be specified. Those currently defined are
-listed at the top of the PostScript::Simple module in the C<%pscolours> hash.
+listed at the top of the PostScript::Simple module in the C<%pscolours> hash
+and include the standard X-Windows colour names.
 
 Example:
 
@@ -889,49 +936,51 @@ Example:
 
 =cut
 
-sub setcolour# {{{
+sub setcolour
 {
   my $self = shift;
   my ($r, $g, $b) = @_;
 
-  if ( @_ == 1 )
-  {
+  if ( @_ == 1 ) {
     $r = lc $r;
-
-    if (defined $pscolours{$r})
-    {
-      ($r, $g, $b) = split(/\s+/, $pscolours{$r});
+    if (defined $pscolours{$r}) {
+      ($r, $g, $b) = @{$pscolours{$r}};
     } else {
       $self->_error( "bad colour name '$r'" );
       return 0;
     }
   }
-  elsif ( @_ == 3 )
-  {
-    $r /= 255;
-    $g /= 255;
-    $b /= 255;
-  }
-  else
-  {
-    if (not defined $r) { $r = 'undef' }
-    if (not defined $g) { $g = 'undef' }
-    if (not defined $b) { $b = 'undef' }
+
+  my $bad = 0;
+  if (not defined $r) { $r = 'undef'; $bad = 1; }
+  if (not defined $g) { $g = 'undef'; $bad = 1; }
+  if (not defined $b) { $b = 'undef'; $bad = 1; }
+
+  if ($bad) {
     $self->_error( "setcolour given invalid arguments: $r, $g, $b" );
     return 0;
   }
 
-  if ($self->{colour})
-  {
+  # make sure floats aren't too long, and means the tests pass when
+  # using a system with long doubles enabled by default
+  $r = 0 + sprintf("%0.5f", $r / 255);
+  $g = 0 + sprintf("%0.5f", $g / 255);
+  $b = 0 + sprintf("%0.5f", $b / 255);
+
+  if ($self->{colour}) {
     $self->{pspages} .= "$r $g $b setrgbcolor\n";
   } else {
-    $r = 0.3*$r + 0.59*$g + 0.11*$b;	##PKENT - better colour->grey conversion
+    # Better colour->grey conversion than just 0.33 of each:
+    $r = 0.3*$r + 0.59*$g + 0.11*$b;
+    $r = 0 + sprintf("%0.5f", $r / 255);
     $self->{pspages} .= "$r setgray\n";
   }
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<setlinewidth(width)>
 
@@ -946,24 +995,22 @@ Example:
 
 =cut
 
-
-sub setlinewidth# {{{
+sub setlinewidth
 {
   my $self = shift;
   my $width = shift || do {
     $self->_error( "setlinewidth not given a width" ); return 0;
   };
 
-# MCN should allow for option units=>"cm" on each setlinewidth / line / polygon etc
-  ##PKENT - good idea, should we have names for line weights, like we do for colours?
-  if ($width eq "thin") { $width = "0.4" }
-  else { $width .= " u" }
+  $width = "0.4 bp" if $width eq "thin";
 
-  $self->{pspages} .= "$width setlinewidth\n";
+  $self->{pspages} .= $self->_u($width) . "setlinewidth\n";
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<line(x1,y1, x2,y2 [,red, green, blue])>
 
@@ -986,37 +1033,32 @@ Example:
 
 =cut
 
-
-sub line# {{{
+sub line
 {
   my $self = shift;
   my ($x1, $y1, $x2, $y2, $r, $g, $b) = @_;
-# dashed lines? XXXXX
 
-# MCN should allow for option units=>"cm" on each setlinewidth / line / polygon etc
-  if ((!$self->{pspagecount}) and (!$self->{eps}))
-  {
-# Cannot draw on to non-page when not an eps file XXXXX
+  if ((!$self->{pspagecount}) and (!$self->{eps})) {
+    # Cannot draw on to non-page when not an eps file
     return 0;
   }
 
-  if ( @_ == 7 )
-  {
+  if ( @_ == 7 ) {
     $self->setcolour($r, $g, $b);
-  }
-  elsif ( @_ != 4 )
-  {
-  	$self->_error( "wrong number of args for line" );
-  	return 0;
+  } elsif ( @_ != 4 ) {
+    $self->_error( "wrong number of args for line" );
+    return 0;
   }
   
   $self->newpath;
   $self->moveto($x1, $y1);
-  $self->{pspages} .= "$x2 ux $y2 uy lineto stroke\n";
+  $self->{pspages} .= $self->_uxy($x2, $y2) . "lineto stroke\n";
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<linextend(x,y)>
 
@@ -1037,29 +1079,27 @@ The C<polygon> method may be more appropriate.
 
 =cut
 
-
-sub linextend# {{{
+sub linextend
 {
   my $self = shift;
   my ($x, $y) = @_;
   
-  unless ( @_ == 2 )
-  {
+  unless ( @_ == 2 ) {
     $self->_error( "wrong number of args for linextend" );
-  	return 0;
+    return 0;
   }
   
-  $self->{pspages} =~ s/eto stroke\n$/eto\n$x ux $y uy lineto stroke\n/;
+  my $out = $self->_uxy($x, $y) . "lineto stroke\n";
+  $self->{pspages} =~ s/eto stroke\n$/eto\n$out/;
   
-  ##PKENT comments: lineto can follow a curveto or a lineto, hence the change in regexp
-  ##also I thought that it'd be better to change the '.*$' in the regexp with '\n$' - perhaps
-  ##we need something like $self->{_lastcommand} to know if operations are valid?
+  # perhaps we need something like $self->{_lastcommand} to know if operations
+  # are valid, rather than using a regexp?
     
-#  $self->{pspages} .= "$x ux $y uy lineto stroke\n";
-# XXXXX fixme
-
   return 1;
-}# }}}
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item C<arc([options,] x,y, radius, start_angle, end_angle)>
 
@@ -1088,7 +1128,7 @@ Example:
 
 =cut
 
-sub arc# {{{
+sub arc
 {
   my $self = shift;
   my %opt = ();
@@ -1098,7 +1138,7 @@ sub arc# {{{
   }
 
   if ((!$self->{pspagecount}) and (!$self->{eps})) {
-# Cannot draw on to non-page when not an eps file XXXXX
+    # Cannot draw on to non-page when not an eps file
     return 0;
   }
 
@@ -1110,7 +1150,7 @@ sub arc# {{{
   }
 
   $self->newpath;
-  $self->{pspages} .= "$x ux $y uy $r u $sa $ea arc ";
+  $self->{pspages} .= $self->_uxy($x, $y) . $self->_u($r) . "$sa $ea arc ";
   if ($opt{'filled'}) {
     $self->{pspages} .= "fill\n"
   } else {
@@ -1118,7 +1158,10 @@ sub arc# {{{
   }
   
   return 1;
-}# }}}
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item C<polygon([options,] x1,y1, x2,y2, ..., xn,yn)>
 
@@ -1165,8 +1208,7 @@ Example:
 
 =cut
 
-
-sub polygon# {{{
+sub polygon
 {
   my $self = shift;
 
@@ -1174,119 +1216,90 @@ sub polygon# {{{
   my ($xoffset, $yoffset) = (0,0);
   my ($rotate, $rotatex, $rotatey) = (0,0,0);
 
-# PKENT comments - the first arg could be an optional hashref of options. See if
-# it's there with ref($_[0]) If it is, then shift it off and use those options.
-# Could take the form: polygon( { offset => [ 10, 10 ], filled => 0, rotate =>
-# 45, rotate => [45, 10, 10] }, $x1, ...  it seems neater to use perl native
-# structures instead of manipulating strings
-# ... done MCN 2002-10-22
-
-  if ($#_ < 3)
-  {
-# cannot have polygon with just one point...
+  if ($#_ < 3) {
+    # cannot have polygon with just one point...
     $self->_error( "bad polygon - not enough points" );
     return 0;
   }
 
-  if (ref($_[0]))
-  {
+  if (ref($_[0])) {
     %opt = %{; shift};
   }
 
   my $x = shift;
   my $y = shift;
 
-  if (defined $opt{'rotate'})
-  {
-    if (ref($opt{'rotate'}))
-    {
+  if (defined $opt{'rotate'}) {
+    if (ref($opt{'rotate'})) {
       ($rotate, $rotatex, $rotatey) = @{$opt{'rotate'}};
-    }
-    else
-    {
+    } else {
       ($rotate, $rotatex, $rotatey) = ($opt{'rotate'}, $x, $y);
     }
   }
 
-  if (defined $opt{'offset'})
-  {
-    if (ref($opt{'offset'}))
-    {
+  if (defined $opt{'offset'}) {
+    if (ref($opt{'offset'})) {
       ($xoffset, $yoffset) = @{$opt{'offset'}};
-    }
-    else
-    {
+    } else {
       $self->_error("polygon: bad offset option" );
       return 0;
     }
   }
 
-  if (!defined $opt{'filled'})
-  {
+  if (!defined $opt{'filled'}) {
     $opt{'filled'} = 0;
   }
   
-  unless (defined($x) && defined($y))
-  {
+  unless (defined($x) && defined($y)) {
     $self->_error("polygon: no start point");
     return 0;
   }
 
   my $savestate = ($xoffset || $yoffset || $rotate) ? 1 : 0 ;
   
-  if ( $savestate )
-  {
+  if ( $savestate ) {
     $self->{pspages} .= "gsave ";
   }
 
-  if ($xoffset || $yoffset)
-  {
-    $self->{pspages} .= "$xoffset ux $yoffset uy translate\n";
-    #$self->{pspages} .= "$xoffset u $yoffset u translate\n";   ?
+  if ($xoffset || $yoffset) {
+    $self->{pspages} .= $self->_uxy($xoffset, $yoffset) . "translate\n";
   }
 
-  if ($rotate)
-  {
-    if (!$self->{usedrotabout})
-    {
-      $self->{psfunctions} .= "/rotabout {3 copy pop translate rotate exch 0 exch
-sub exch 0 exch sub translate} def\n";
+  if ($rotate) {
+    if (!$self->{usedrotabout}) {
+      $self->{psfunctions} .= "/rotabout {3 copy pop translate rotate exch ";
+      $self->{psfunctions} .= "0 exch sub exch 0 exch sub translate} def\n";
       $self->{usedrotabout} = 1;
     }
 
-    $self->{pspages} .= "$rotatex ux $rotatey uy $rotate rotabout\n";
-#    $self->{pspages} .= "gsave $rotatex ux $rotatey uy translate ";
-#    $self->{pspages} .= "$rotate rotate -$rotatex ux -$rotatey uy translate\n";
+    $self->{pspages} .= $self->_uxy($rotatex, $rotatey) . "$rotate rotabout\n";
   }
   
   $self->newpath;
   $self->moveto($x, $y);
   
-  while ($#_ > 0)
-  {
+  while ($#_ > 0) {
     my $x = shift;
     my $y = shift;
     
-    $self->{pspages} .= "$x ux $y uy lineto ";
+    $self->{pspages} .= $self->_uxy($x, $y) . "lineto ";
   }
 
-  if ($opt{'filled'})
-  {
+  if ($opt{'filled'}) {
     $self->{pspages} .= "fill\n";
-  }
-  else
-  {
+  } else {
     $self->{pspages} .= "stroke\n";
   }
 
-  if ( $savestate )
-  {
+  if ( $savestate ) {
     $self->{pspages} .= "grestore\n";
   }
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<circle([options,] x,y, r)>
 
@@ -1310,37 +1323,36 @@ Example:
 
 =cut
 
-
-sub circle# {{{
+sub circle
 {
   my $self = shift;
   my %opt = ();
 
-  if (ref($_[0]))
-  {
+  if (ref($_[0])) {
     %opt = %{; shift};
   }
 
   my ($x, $y, $r) = @_;
 
-  unless (@_ == 3)
-  {
+  unless (@_ == 3) {
     $self->_error("circle: wrong number of arguments");
     return 0;
   }
 
-  if (!$self->{usedcircle})
-  {
+  if (!$self->{usedcircle}) {
     $self->{psfunctions} .= "/circle {newpath 0 360 arc closepath} bind def\n";
     $self->{usedcircle} = 1;
   }
 
-  $self->{pspages} .= "$x ux $y uy $r u circle ";
+  $self->{pspages} .= $self->_uxy($x, $y) . $self->_u($r) . "circle ";
   if ($opt{'filled'}) { $self->{pspages} .= "fill\n" }
   else {$self->{pspages} .= "stroke\n" }
   
   return 1;
-}# }}}
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item C<circletext([options,] x, y, r, a, text)>
 
@@ -1366,14 +1378,12 @@ Example:
 
 =cut
 
-
-sub circletext# {{{
+sub circletext
 {
   my $self = shift;
   my %opt = ();
 
-  if (ref($_[0]))
-  {
+  if (ref($_[0])) {
     %opt = %{; shift};
   }
 
@@ -1448,8 +1458,8 @@ EOCT
   }
 
   $self->{pspages} .= "gsave\n";
-  $self->{pspages} .= "  $x ux $y uy translate\n";
-  $self->{pspages} .= "  ($text) $self->{lastfontsize} $a $r u ";
+  $self->{pspages} .= "  " . $self->_uxy($x, $y) . "translate\n";
+  $self->{pspages} .= "  ($text) $self->{lastfontsize} $a " . $self->_u($r);
   if ($opt{'align'} && ($opt{'align'} eq "outside")) {
     $self->{pspages} .= "outsidecircletext\n";
   } else {
@@ -1458,7 +1468,10 @@ EOCT
   $self->{pspages} .= "grestore\n";
   
   return 1;
-}# }}}
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item C<box(x1,y1, x2,y2 [, options])>
 
@@ -1486,32 +1499,28 @@ The C<polygon> method is far more flexible, but this method is quicker!
 
 =cut
 
-
-sub box# {{{
+sub box
 {
   my $self = shift;
 
   my %opt = ();
 
-  if (ref($_[0]))
-  {
+  if (ref($_[0])) {
     %opt = %{; shift};
   }
 
   my ($x1, $y1, $x2, $y2) = @_;
 
   unless (@_ == 4) {
-  	$self->_error("box: wrong number of arguments");
-  	return 0;
+    $self->_error("box: wrong number of arguments");
+    return 0;
   }
 
-  if (!defined($opt{'filled'}))
-  {
+  if (!defined($opt{'filled'})) {
     $opt{'filled'} = 0;
   }
   
-  unless ($self->{usedbox})
-  {
+  unless ($self->{usedbox}) {
     $self->{psfunctions} .= "/box {
   newpath 3 copy pop exch 4 copy pop pop
   8 copy pop pop pop pop exch pop exch
@@ -1522,13 +1531,16 @@ sub box# {{{
     $self->{usedbox} = 1;
   }
 
-  $self->{pspages} .= "$x1 ux $y1 uy $x2 ux $y2 uy box ";
+  $self->{pspages} .= $self->_uxy($x1, $y1);
+  $self->{pspages} .= $self->_uxy($x2, $y2) . "box ";
   if ($opt{'filled'}) { $self->{pspages} .= "fill\n" }
   else {$self->{pspages} .= "stroke\n" }
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<setfont(font, size)>
 
@@ -1541,15 +1553,14 @@ This method must be called on every page before the C<text> method is used.
 
 =cut
 
-
-sub setfont# {{{
+sub setfont
 {
   my $self = shift;
   my ($name, $size, $ysize) = @_;
 
   unless (@_ == 2) {
-  	$self->_error( "wrong number of arguments for setfont" );
-  	return 0;
+    $self->_error( "wrong number of arguments for setfont" );
+    return 0;
   }
 
 # set font y size XXXXX
@@ -1558,8 +1569,10 @@ sub setfont# {{{
   $self->{lastfontsize} = $size;
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<text([options,] x,y, string)>
 
@@ -1592,8 +1605,7 @@ Example:
 
 =cut
 
-
-sub text# {{{
+sub text
 {
   my $self = shift;
 
@@ -1602,23 +1614,21 @@ sub text# {{{
   my $align = "";
   my %opt = ();
 
-  if (ref($_[0]))
-  {
+  if (ref($_[0])) {
     %opt = %{; shift};
   }
   
   unless ( @_ == 3 )
   { # check required params first
-  	$self->_error("text: wrong number of arguments");
-  	return 0;
+    $self->_error("text: wrong number of arguments");
+    return 0;
   }
   
   my ($x, $y, $text) = @_;
 
-  unless (defined($x) && defined($y) && defined($text))
-  {
-  	$self->_error("text: wrong number of arguments");
-  	return 0;
+  unless (defined($x) && defined($y) && defined($text)) {
+    $self->_error("text: wrong number of arguments");
+    return 0;
   }
   
   # Escape text to allow parentheses
@@ -1630,11 +1640,9 @@ sub text# {{{
 
   # rotation
 
-  if (defined $opt{'rotate'})
-  {
+  if (defined $opt{'rotate'}) {
     my $rot_a = $opt{ 'rotate' };
-    if( $rot_a != 0 )
-    {
+    if( $rot_a != 0 ) {
       $rot   = " $rot_a rotate ";
       $rot_a = -$rot_a;
       $rot_m = " $rot_a rotate ";
@@ -1642,10 +1650,9 @@ sub text# {{{
   }
 
   # alignment
+
   $align = " show stroke"; 
-      # align left
-  if (defined $opt{'align'})
-  {
+  if (defined $opt{'align'}) {
     $align = " dup stringwidth pop neg 0 rmoveto show" 
         if $opt{ 'align' } eq 'right';
     $align = " dup stringwidth pop 2 div neg 0 rmoveto show"
@@ -1655,8 +1662,10 @@ sub text# {{{
   $self->{pspages} .= "($text) $rot $align $rot_m\n";
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item curve( x1, y1, x2, y2, x3, y3, x4, y4 )
 
@@ -1665,32 +1674,32 @@ control points for the start- and end-points respectively.
 
 =cut
 
-
-sub curve# {{{
+sub curve
 {
   my $self = shift;
   my ($x1, $y1, $x2, $y2, $x3, $y3, $x4, $y4) = @_;
-# dashed lines? XXXXX
 
-  unless ( @_ == 8 ) 
-  {
+  unless ( @_ == 8 ) {
     $self->_error( "bad curve definition, wrong number of args" );
     return 0;
   }
   
-  if ((!$self->{pspagecount}) and (!$self->{eps}))
-  {
-# Cannot draw on to non-page when not an eps file XXXXX
+  if ((!$self->{pspagecount}) and (!$self->{eps})) {
+    # Cannot draw on to non-page when not an eps file
     return 0;
   }
 
   $self->newpath;
   $self->moveto($x1, $y1);
-  $self->{pspages} .= "$x2 ux $y2 uy $x3 ux $y3 uy $x4 ux $y4 uy curveto stroke\n";
+  $self->{pspages} .= $self->_uxy($x2, $y2);
+  $self->{pspages} .= $self->_uxy($x3, $y3);
+  $self->{pspages} .= $self->_uxy($x4, $y4) . "curveto stroke\n";
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item curvextend( x1, y1, x2, y2, x3, y3 )
 
@@ -1701,55 +1710,67 @@ other method is unspecified.
 
 =cut
 
-
-sub curvextend# {{{
+sub curvextend
 {
   my $self = shift;
   my ($x1, $y1, $x2, $y2, $x3, $y3) = @_;
-  unless ( @_ == 6 ) 
-  {
+
+  unless ( @_ == 6 ) {
     $self->_error( "bad curvextend definition, wrong number of args" );
     return 0;
   }
   
+  my $out = $self->_uxy($x1, $y1);
+  $out .= $self->_uxy($x2, $y2);
+  $out .= $self->_uxy($x3, $y3) . "curveto stroke\n";
+
   # curveto may follow a lineto etc...
-  $self->{pspages} =~ s/eto stroke\n$/eto\n$x1 ux $y1 uy $x2 ux $y2 uy $x3 ux $y3 uy curveto stroke\n/;
+  $self->{pspages} =~ s/eto stroke\n$/eto\n$out/;
   
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item newpath
 
-This method is used internally to begin a new drawing path - you should generally NEVER use it.
+This method is used internally to begin a new drawing path - you should
+generally NEVER use it.
 
 =cut
 
-
-sub newpath# {{{
+sub newpath
 {
-	my $self = shift;
-	$self->{pspages} .= "newpath\n";
-	return 1;
-}# }}}
+  my $self = shift;
 
+  $self->{pspages} .= "newpath\n";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item moveto( x, y )
 
-This method is used internally to move the cursor to a new point at (x, y) - you will 
-generally NEVER use this method.
+This method is used internally to move the cursor to a new point at (x, y) -
+you will generally NEVER use this method.
 
 =cut
 
-
-sub moveto# {{{
+sub moveto
 {
-	my $self = shift;
-	my ($x, $y) = @_;
-	$self->{pspages} .= "$x ux $y uy moveto\n";
-	return 1;
-}# }}}
+  my $self = shift;
+  my ($x, $y) = @_;
 
+  $self->{pspages} .= $self->_uxy($x, $y) . "moveto\n";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
 
 =item C<importepsfile([options,] filename, x1,y1, x2,y2)>
 
@@ -1793,8 +1814,7 @@ Example:
 
 =cut
 
-
-sub importepsfile# {{{
+sub importepsfile
 {
   my $self = shift;
 
@@ -1865,8 +1885,10 @@ sub importepsfile# {{{
   $self->_add_eps($eps, $x1, $y1);
 
   return 1;
-}# }}}
+}
 
+
+#-------------------------------------------------------------------------------
 
 =item C<importeps(filename, x,y)>
 
@@ -1895,8 +1917,7 @@ Example:
 
 =cut
 
-
-sub importeps# {{{
+sub importeps
 {
   my $self = shift;
   my ($epsobj, $xpos, $ypos) = @_;
@@ -1909,9 +1930,13 @@ sub importeps# {{{
   $self->_add_eps($epsobj, $xpos, $ypos);
 
   return 1;
-}# }}}
+}
 
-sub _add_eps# {{{
+
+################################################################################
+# PRIVATE methods
+
+sub _add_eps
 {
   my $self = shift;
   my $epsobj;
@@ -1929,8 +1954,8 @@ sub _add_eps# {{{
   }
 
   if ( @_ != 3 ) {
-  	croak "internal error: wrong number of arguments for _add_eps";
-  	return 0;
+    croak "internal error: wrong number of arguments for _add_eps";
+    return 0;
   }
 
   unless ($self->{usedimporteps}) {
@@ -1949,23 +1974,26 @@ EOEPS
   ($epsobj, $xpos, $ypos) = @_;
 
   $self->{pspages} .= "BeginEPSF\n";
-  $self->{pspages} .= "$xpos ux $ypos uy translate\n";
-  $self->{pspages} .= "1 ux 1 uy scale\n";
+  $self->{pspages} .= $self->_uxy($xpos, $ypos) . "translate\n";
+  $self->{pspages} .= $self->_uxy(1, 1) . "scale\n";
   $self->{pspages} .= $epsobj->_get_include_data($xpos, $ypos);
   $self->{pspages} .= "EndEPSF\n";
   
   return 1;
-}# }}}
+}
 
 
-### PRIVATE
+#-------------------------------------------------------------------------------
 
-sub _error {# {{{
-	my $self = shift;
-	my $msg = shift;
-	$self->{pspages} .= "(error: $msg\n) print flush\n";
-}# }}}
+sub _error {
+  my $self = shift;
+  my $msg = shift;
 
+  $self->{pspages} .= "(error: $msg\n) print flush\n";
+}
+
+
+#-------------------------------------------------------------------------------
 
 # Display method for debugging internal variables
 #
@@ -1995,7 +2023,7 @@ Thanks!
 Please see the README file in the distribution for more information about
 contributors.
 
-Copyright (C) 2002-2003 Matthew C. Newton / Newton Computing
+Copyright (C) 2002-2014 Matthew C. Newton
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

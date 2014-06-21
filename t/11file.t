@@ -88,21 +88,18 @@ my ( $body ) = ( $lines =~ m/%%EndProlog\n(.*)%%EOF/s );
 ok( $body );
 ok( $body eq BODY());
 
-#print ">>>$body<<<<<<\n";
+#print STDERR ">>>$body<<<<<<\n";
 
 ### Subs
 
 sub PROLOG {
-	return q[/ux {72 mul 25.4 div} def
-/uy {72 mul 25.4 div} def
-/u {72 mul 25.4 div} def
-/STARTDIFFENC { mark } bind def
+	return q[/STARTDIFFENC { mark } bind def
 /ENDDIFFENC { 
 
 % /NewEnc BaseEnc STARTDIFFENC number or glyphname ... ENDDIFFENC -
 	counttomark 2 add -1 roll 256 array copy
 	/TempEncode exch def
-	
+
 	% pointer for sequential encodings
 	/EncodePointer 0 def
 	{
@@ -124,7 +121,7 @@ sub PROLOG {
 			/EncodePointer exch def
 			} ifelse
 		} ifelse
-	} loop	
+	} loop
 
 	TempEncode def
 } bind def
@@ -199,14 +196,15 @@ sub PROLOG {
 /Times-Italic-iso ISOLatin1Encoding /Times-Italic REENCODEFONT
 /Symbol-iso ISOLatin1Encoding /Symbol REENCODEFONT
 /circle {newpath 0 360 arc closepath} bind def
-/rotabout {3 copy pop translate rotate exch 0 exch
-sub exch 0 exch sub translate} def
+/rotabout {3 copy pop translate rotate exch 0 exch sub exch 0 exch sub translate} def
 /box {
   newpath 3 copy pop exch 4 copy pop pop
   8 copy pop pop pop pop exch pop exch
   3 copy pop pop exch moveto lineto
   lineto lineto pop pop pop pop closepath
 } bind def
+/ubp {} def
+/umm {72 mul 25.4 div} def
 ];
 }
 
@@ -219,114 +217,114 @@ ll 2 ge { << /PageSize [ 595.27559 841.88976 ] /ImagingBBox null >> setpagedevic
 /pagelevel save def
 %%EndPageSetup
 newpath
-10 ux 10 uy moveto
-10 ux 50 uy lineto stroke
-8 u setlinewidth
+10 umm 10 umm moveto
+10 umm 50 umm lineto stroke
+8 umm setlinewidth
 newpath
-90 ux 10 uy moveto
-90 ux 50 uy lineto
-40 ux 90 uy lineto stroke
+90 umm 10 umm moveto
+90 umm 50 umm lineto
+40 umm 90 umm lineto stroke
 1 0 0 setrgbcolor
-40 ux 90 uy 30 u circle fill
-0 0.5 0 setrgbcolor
-0.1 u setlinewidth
+40 umm 90 umm 30 umm circle fill
+0 0.49804 0 setrgbcolor
+0.1 umm setlinewidth
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
-gsave 70 ux 90 uy 20 rotabout
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
+gsave 70 umm 90 umm 20 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 40 rotabout
+gsave 70 umm 90 umm 40 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 60 rotabout
+gsave 70 umm 90 umm 60 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 80 rotabout
+gsave 70 umm 90 umm 80 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 100 rotabout
+gsave 70 umm 90 umm 100 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 120 rotabout
+gsave 70 umm 90 umm 120 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 140 rotabout
+gsave 70 umm 90 umm 140 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 160 rotabout
+gsave 70 umm 90 umm 160 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 180 rotabout
+gsave 70 umm 90 umm 180 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 200 rotabout
+gsave 70 umm 90 umm 200 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 220 rotabout
+gsave 70 umm 90 umm 220 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 240 rotabout
+gsave 70 umm 90 umm 240 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 260 rotabout
+gsave 70 umm 90 umm 260 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 280 rotabout
+gsave 70 umm 90 umm 280 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 300 rotabout
+gsave 70 umm 90 umm 300 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 320 rotabout
+gsave 70 umm 90 umm 320 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-gsave 70 ux 90 uy 340 rotabout
+gsave 70 umm 90 umm 340 rotabout
 newpath
-40 ux 90 uy moveto
-69 ux 92 uy lineto 75 ux 84 uy lineto stroke
+40 umm 90 umm moveto
+69 umm 92 umm lineto 75 umm 84 umm lineto stroke
 grestore
-0.4 setlinewidth
-0 0.5 0 setrgbcolor
-20 ux 10 uy 80 ux 20 uy box stroke
-0.3 0.3 0.3 setrgbcolor
-20 ux 30 uy 80 ux 40 uy box fill
-0.1 0.1 0.1 setrgbcolor
+0.4 ubp setlinewidth
+0 0.49804 0 setrgbcolor
+20 umm 10 umm 80 umm 20 umm box stroke
+0.29804 0.29804 0.29804 setrgbcolor
+20 umm 30 umm 80 umm 40 umm box fill
+0.09804 0.09804 0.09804 setrgbcolor
 /Bookman findfont 12 scalefont setfont
 newpath
-5 ux 5 uy moveto
+5 umm 5 umm moveto
 (Matthew)   show stroke 
 %%PageTrailer
 pagelevel restore
@@ -336,32 +334,32 @@ showpage
 /pagelevel save def
 %%EndPageSetup
 newpath
-10 ux 20 uy moveto
-30 ux 40 uy lineto
-60 ux 50 uy lineto stroke
+10 umm 20 umm moveto
+30 umm 40 umm lineto
+60 umm 50 umm lineto stroke
 newpath
-10 ux 12 uy moveto
-20 ux 12 uy lineto stroke
+10 umm 12 umm moveto
+20 umm 12 umm lineto stroke
 newpath
-10 ux 10 uy moveto
-20 ux 10 uy lineto stroke
-0.9 0.9 0.9 setrgbcolor
-gsave 5 ux 5 uy translate
+10 umm 10 umm moveto
+20 umm 10 umm lineto stroke
+0.89804 0.89804 0.89804 setrgbcolor
+gsave 5 umm 5 umm translate
 newpath
-10 ux 10 uy moveto
-15 ux 20 uy lineto 25 ux 20 uy lineto 30 ux 10 uy lineto 15 ux 15 uy lineto 10 ux 10 uy lineto fill
+10 umm 10 umm moveto
+15 umm 20 umm lineto 25 umm 20 umm lineto 30 umm 10 umm lineto 15 umm 15 umm lineto 10 umm 10 umm lineto fill
 grestore
 0 0 0 setrgbcolor
-gsave 10 ux 10 uy translate
-20 ux 20 uy 45 rotabout
+gsave 10 umm 10 umm translate
+20 umm 20 umm 45 rotabout
 newpath
-10 ux 10 uy moveto
-15 ux 20 uy lineto 25 ux 20 uy lineto 30 ux 10 uy lineto 15 ux 15 uy lineto 10 ux 10 uy lineto stroke
+10 umm 10 umm moveto
+15 umm 20 umm lineto 25 umm 20 umm lineto 30 umm 10 umm lineto 15 umm 15 umm lineto 10 umm 10 umm lineto stroke
 grestore
 1 0 0 setrgbcolor
 newpath
-0 ux 100 uy moveto
-100 ux 0 uy lineto stroke
+0 umm 100 umm moveto
+100 umm 0 umm lineto stroke
 %%PageTrailer
 pagelevel restore
 showpage
@@ -369,82 +367,82 @@ showpage
 %%BeginPageSetup
 /pagelevel save def
 %%EndPageSetup
-0.141176470588235 0 0 setrgbcolor
-10 ux 10 uy 12 ux 40 uy box fill
-0.164705882352941 0 0 setrgbcolor
-12 ux 10 uy 14 ux 40 uy box fill
-0.188235294117647 0 0 setrgbcolor
-14 ux 10 uy 16 ux 40 uy box fill
-0.211764705882353 0 0 setrgbcolor
-16 ux 10 uy 18 ux 40 uy box fill
-0.235294117647059 0 0 setrgbcolor
-18 ux 10 uy 20 ux 40 uy box fill
-0.258823529411765 0 0 setrgbcolor
-20 ux 10 uy 22 ux 40 uy box fill
-0.282352941176471 0 0 setrgbcolor
-22 ux 10 uy 24 ux 40 uy box fill
-0.305882352941176 0 0 setrgbcolor
-24 ux 10 uy 26 ux 40 uy box fill
-0.329411764705882 0 0 setrgbcolor
-26 ux 10 uy 28 ux 40 uy box fill
-0.352941176470588 0 0 setrgbcolor
-28 ux 10 uy 30 ux 40 uy box fill
-0.376470588235294 0 0 setrgbcolor
-30 ux 10 uy 32 ux 40 uy box fill
+0.14118 0 0 setrgbcolor
+10 umm 10 umm 12 umm 40 umm box fill
+0.16471 0 0 setrgbcolor
+12 umm 10 umm 14 umm 40 umm box fill
+0.18824 0 0 setrgbcolor
+14 umm 10 umm 16 umm 40 umm box fill
+0.21176 0 0 setrgbcolor
+16 umm 10 umm 18 umm 40 umm box fill
+0.23529 0 0 setrgbcolor
+18 umm 10 umm 20 umm 40 umm box fill
+0.25882 0 0 setrgbcolor
+20 umm 10 umm 22 umm 40 umm box fill
+0.28235 0 0 setrgbcolor
+22 umm 10 umm 24 umm 40 umm box fill
+0.30588 0 0 setrgbcolor
+24 umm 10 umm 26 umm 40 umm box fill
+0.32941 0 0 setrgbcolor
+26 umm 10 umm 28 umm 40 umm box fill
+0.35294 0 0 setrgbcolor
+28 umm 10 umm 30 umm 40 umm box fill
+0.37647 0 0 setrgbcolor
+30 umm 10 umm 32 umm 40 umm box fill
 0.4 0 0 setrgbcolor
-32 ux 10 uy 34 ux 40 uy box fill
-0.423529411764706 0 0 setrgbcolor
-34 ux 10 uy 36 ux 40 uy box fill
-0.447058823529412 0 0 setrgbcolor
-36 ux 10 uy 38 ux 40 uy box fill
-0.470588235294118 0 0 setrgbcolor
-38 ux 10 uy 40 ux 40 uy box fill
-0.494117647058824 0 0 setrgbcolor
-40 ux 10 uy 42 ux 40 uy box fill
-0.517647058823529 0 0 setrgbcolor
-42 ux 10 uy 44 ux 40 uy box fill
-0.541176470588235 0 0 setrgbcolor
-44 ux 10 uy 46 ux 40 uy box fill
-0.564705882352941 0 0 setrgbcolor
-46 ux 10 uy 48 ux 40 uy box fill
-0.588235294117647 0 0 setrgbcolor
-48 ux 10 uy 50 ux 40 uy box fill
-0.611764705882353 0 0 setrgbcolor
-50 ux 10 uy 52 ux 40 uy box fill
-0.635294117647059 0 0 setrgbcolor
-52 ux 10 uy 54 ux 40 uy box fill
-0.658823529411765 0 0 setrgbcolor
-54 ux 10 uy 56 ux 40 uy box fill
-0.682352941176471 0 0 setrgbcolor
-56 ux 10 uy 58 ux 40 uy box fill
-0.705882352941177 0 0 setrgbcolor
-58 ux 10 uy 60 ux 40 uy box fill
-0.729411764705882 0 0 setrgbcolor
-60 ux 10 uy 62 ux 40 uy box fill
-0.752941176470588 0 0 setrgbcolor
-62 ux 10 uy 64 ux 40 uy box fill
-0.776470588235294 0 0 setrgbcolor
-64 ux 10 uy 66 ux 40 uy box fill
+32 umm 10 umm 34 umm 40 umm box fill
+0.42353 0 0 setrgbcolor
+34 umm 10 umm 36 umm 40 umm box fill
+0.44706 0 0 setrgbcolor
+36 umm 10 umm 38 umm 40 umm box fill
+0.47059 0 0 setrgbcolor
+38 umm 10 umm 40 umm 40 umm box fill
+0.49412 0 0 setrgbcolor
+40 umm 10 umm 42 umm 40 umm box fill
+0.51765 0 0 setrgbcolor
+42 umm 10 umm 44 umm 40 umm box fill
+0.54118 0 0 setrgbcolor
+44 umm 10 umm 46 umm 40 umm box fill
+0.56471 0 0 setrgbcolor
+46 umm 10 umm 48 umm 40 umm box fill
+0.58824 0 0 setrgbcolor
+48 umm 10 umm 50 umm 40 umm box fill
+0.61176 0 0 setrgbcolor
+50 umm 10 umm 52 umm 40 umm box fill
+0.63529 0 0 setrgbcolor
+52 umm 10 umm 54 umm 40 umm box fill
+0.65882 0 0 setrgbcolor
+54 umm 10 umm 56 umm 40 umm box fill
+0.68235 0 0 setrgbcolor
+56 umm 10 umm 58 umm 40 umm box fill
+0.70588 0 0 setrgbcolor
+58 umm 10 umm 60 umm 40 umm box fill
+0.72941 0 0 setrgbcolor
+60 umm 10 umm 62 umm 40 umm box fill
+0.75294 0 0 setrgbcolor
+62 umm 10 umm 64 umm 40 umm box fill
+0.77647 0 0 setrgbcolor
+64 umm 10 umm 66 umm 40 umm box fill
 0.8 0 0 setrgbcolor
-66 ux 10 uy 68 ux 40 uy box fill
-0.823529411764706 0 0 setrgbcolor
-68 ux 10 uy 70 ux 40 uy box fill
-0.847058823529412 0 0 setrgbcolor
-70 ux 10 uy 72 ux 40 uy box fill
-0.870588235294118 0 0 setrgbcolor
-72 ux 10 uy 74 ux 40 uy box fill
-0.894117647058824 0 0 setrgbcolor
-74 ux 10 uy 76 ux 40 uy box fill
-0.917647058823529 0 0 setrgbcolor
-76 ux 10 uy 78 ux 40 uy box fill
+66 umm 10 umm 68 umm 40 umm box fill
+0.82353 0 0 setrgbcolor
+68 umm 10 umm 70 umm 40 umm box fill
+0.84706 0 0 setrgbcolor
+70 umm 10 umm 72 umm 40 umm box fill
+0.87059 0 0 setrgbcolor
+72 umm 10 umm 74 umm 40 umm box fill
+0.89412 0 0 setrgbcolor
+74 umm 10 umm 76 umm 40 umm box fill
+0.91765 0 0 setrgbcolor
+76 umm 10 umm 78 umm 40 umm box fill
 newpath
-40 ux 30 uy moveto
-30 ux 10 uy lineto
-60 ux 0 uy lineto stroke
+40 umm 30 umm moveto
+30 umm 10 umm lineto
+60 umm 0 umm lineto stroke
 0 1 0 setrgbcolor
 newpath
-0 ux 100 uy moveto
-100 ux 0 uy lineto stroke
+0 umm 100 umm moveto
+100 umm 0 umm lineto stroke
 %%PageTrailer
 pagelevel restore
 showpage

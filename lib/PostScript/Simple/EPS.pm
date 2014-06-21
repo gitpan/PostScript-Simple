@@ -11,7 +11,10 @@ use vars qw($VERSION @ISA @EXPORT);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-$VERSION = "0.01";
+$VERSION = "0.02";
+
+
+#-------------------------------------------------------------------------------
 
 =head1 NAME
 
@@ -121,8 +124,7 @@ of C<PostScript::Simple>.
 
 =cut
 
-
-sub new# {{{
+sub new
 {
   my ($class, %data) = @_;
   my $self = {
@@ -158,9 +160,302 @@ sub new# {{{
   $self->init();
 
   return $self;
-}# }}}
+}
 
-sub _getfilebbox# {{{
+
+#-------------------------------------------------------------------------------
+
+sub init
+{
+  my $self = shift;
+  my $foundbbx = 0;
+
+  if (defined($$self{source})) {
+    croak "EPS file must contain a BoundingBox" if (!$self->_getsourcebbox());
+  } else {
+    croak "EPS file must contain a BoundingBox" if (!_getfilebbox($self));
+  }
+
+  if (($$self{bbx2} - $$self{bbx1} == 0) ||
+      ($$self{bby2} - $$self{bby1} == 0)) {
+    $self->_error("PostScript::Simple::EPS: Bounding Box has zero dimension");
+    return 0;
+  }
+
+  $self->reset();
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=head1 OBJECT METHODS
+
+All object methods return 1 for success or 0 in some error condition
+(e.g. insufficient arguments). Error message text is also drawn on
+the page.
+
+=over 4
+
+=item C<get_bbox>
+
+Returns the EPS bounding box, as specified on the %%BoundingBox line
+of the EPS file. Units are standard PostScript points.
+
+Example:
+
+    ($x1, $y1, $x2, $y2) = $eps->get_bbox();
+
+=cut
+
+sub get_bbox
+{
+  my $self = shift;
+
+  return ($$self{bbx1}, $$self{bby1}, $$self{bbx2}, $$self{bby2});
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<width>
+
+Returns the EPS width, in PostScript points.
+
+Example:
+
+  print "EPS width is " . abs($eps->width()) . "\n";
+
+=cut
+
+sub width
+{
+  my $self = shift;
+
+  return ($$self{bbx2} - $$self{bbx1});
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<height>
+
+Returns the EPS height, in PostScript points.
+
+Example:
+
+To scale $eps to 72 points high, do:
+
+  $eps->scale(1, 72/$eps->height());
+
+=cut
+
+sub height
+{
+  my $self = shift;
+
+  return ($$self{bby2} - $$self{bby1});
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<scale(x, y)>
+
+Scales the EPS file. To scale in one direction only, specify 1 as the
+other scale. To scale the EPS file the same in both directions, you
+may use the shortcut of just specifying the one value.
+
+Example:
+
+    $eps->scale(1.2, 0.8); # make wider and shorter
+    $eps->scale(0.5);      # shrink to half size
+
+=cut
+
+sub scale
+{
+  my $self = shift;
+  my ($x, $y) = @_;
+
+  $y = $x if (!defined $y);
+  croak "bad arguments to scale" if (!defined $x);
+
+  push @{$$self{epsprefix}}, "$x $y scale";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<rotate(deg)>
+
+Rotates the EPS file by C<deg> degrees anti-clockwise. The EPS file is rotated
+about it's own origin (as defined by it's bounding box). To rotate by a particular
+co-ordinate (again, relative to the EPS file, not the main PostScript document),
+use translate, too.
+
+Example:
+
+    $eps->rotate(180);        # turn upside-down
+
+To rotate 30 degrees about point (50,50):
+
+    $eps->translate(50, 50);
+    $eps->rotate(30);
+    $eps->translate(-50, -50);
+    
+=cut
+
+sub rotate
+{
+  my $self = shift;
+  my ($d) = @_;
+
+  croak "bad arguments to rotate" if (!defined $d);
+
+  push @{$$self{epsprefix}}, "$d rotate";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<translate(x, y)>
+
+Move the EPS file by C<x>,C<y> PostScript points.
+
+Example:
+
+    $eps->translate(10, 10);      # move 10 points in both directions
+
+=cut
+
+sub translate
+{
+  my $self = shift;
+  my ($x, $y) = @_;
+
+  croak "bad arguments to translate" if (!defined $y);
+
+  push @{$$self{epsprefix}}, "$x $y translate";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<reset>
+
+Clear all translate, rotate and scale operations.
+
+Example:
+
+    $eps->reset();
+
+=cut
+
+sub reset
+{
+  my $self = shift;
+
+  @{$$self{"epsprefix"}} = ();
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<load>
+
+Reads the EPS file into memory, to save reading it from file each time if
+inserted many times into a document. Can not be used with C<preload>.
+
+=cut
+
+sub load
+{
+  my $self = shift;
+  local *EPS;
+
+  return 1 if (defined $$self{"epsfile"});
+  return 1 if (defined $$self{"source"});
+
+  $$self{"epsfile"} = "\%\%BeginDocument: ($$self{file})\n";
+  open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
+  while (<EPS>)
+  {
+    $$self{"epsfile"} .= $_;
+  }
+  close EPS;
+  $$self{"epsfile"} .= "\%\%EndDocument\n";
+
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<preload(object)>
+
+Experimental: defines the EPS at in the document prolog, and just runs a
+command to insert it each time it is used. C<object> is a PostScript::Simple
+object. If the EPS file is included more than once in the PostScript file then
+this will probably shrink the filesize quite a lot.
+
+Can not be used at the same time as C<load>, or when using EPS objects defined
+from PostScript source.
+
+Example:
+
+    $p = new PostScript::Simple();
+    $e = new PostScript::Simple::EPS(file => "test.eps");
+    $e->preload($p);
+
+=cut
+
+sub preload
+{
+  my $self = shift;
+  my $ps = shift;
+  my $randcode = "";
+
+  croak "already loaded" if (defined $$self{"epsfile"});
+  croak "can't preload when using source" if (defined $$self{"source"});
+
+  croak "no PostScript::Simple module provided" if (!defined $ps);
+
+  for my $i (0..7)
+  {
+    $randcode .= chr(int(rand()*26)+65); # yuk
+  }
+
+  $$self{"epsfile"} = "eps$randcode\n";
+
+  $$ps{"psprolog"} .= "/eps$randcode {\n";
+  $$ps{"psprolog"} .= "\%\%BeginDocument: ($$self{file})\n";
+  open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
+  while (<EPS>)
+  {
+    $$ps{"psprolog"} .= $_;
+  }
+  close EPS;
+  $$ps{"psprolog"} .= "\%\%EndDocument\n";
+  $$ps{"psprolog"} .= "} def\n";
+
+  return 1;
+}
+
+
+################################################################################
+# PRIVATE methods
+
+sub _getfilebbox
 {
   my $self = shift;
   my $foundbbx = 0;
@@ -183,14 +478,23 @@ sub _getfilebbox# {{{
   close EPS;
 
   return $foundbbx;
-}# }}}
+}
 
-sub _getsourcebbox# {{{
+
+#-------------------------------------------------------------------------------
+
+sub _getsourcebbox
 {
   my $self = shift;
 
-  return 0 if (!defined $$self{epsfile});
-  if ($$self{epsfile} =~
+  my $ref;
+
+  $ref = \$self->{epsfile} if defined $self->{epsfile};
+  $ref = \$self->{source}  if defined $self->{source};
+
+  return 0 unless defined $$ref;
+
+  if ($$ref =~
       /^\%\%BoundingBox:\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/m)
   {
     $$self{bbx1} = $1; 
@@ -201,284 +505,12 @@ sub _getsourcebbox# {{{
   }
 
   return 0;
-}# }}}
+}
 
-sub init# {{{
-{
-  my $self = shift;
-  my $foundbbx = 0;
 
-  if (defined($$self{source})) {
-# with dynamic generated file, what do we do with {Begin,End}Document?
-#  $$self{"epsfile"} = "\%\%BeginDocument: $$self{file}\n";
-#  $$self{"epsfile"} .= "\%\%EndDocument\n";
+#-------------------------------------------------------------------------------
 
-    $$self{"epsfile"} = $$self{"source"};
-    delete $$self{"source"};
-    croak "EPS file must contain a BoundingBox" if (!$self->_getsourcebbox());
-  }
-  else
-  {
-    croak "EPS file must contain a BoundingBox" if (!_getfilebbox($self));
-  }
-
-  if (($$self{bbx2} - $$self{bbx1} == 0) ||
-      ($$self{bby2} - $$self{bby1} == 0)) {
-    $self->_error("PostScript::Simple::EPS: Bounding Box has zero dimension");
-    return 0;
-  }
-
-  $self->reset();
-
-  return 1;
-}# }}}
-
-
-=head1 OBJECT METHODS
-
-All object methods return 1 for success or 0 in some error condition
-(e.g. insufficient arguments).  Error message text is also drawn on
-the page.
-
-=over 4
-
-=item C<get_bbox>
-
-Returns the EPS bounding box, as specified on the %%BoundingBox line
-of the EPS file. Units are standard PostScript points.
-
-Example:
-
-    ($x1, $y1, $x2, $y2) = $eps->get_bbox();
-
-=cut
-
-sub get_bbox# {{{
-{
-  my $self = shift;
-
-  return ($$self{bbx1}, $$self{bby1}, $$self{bbx2}, $$self{bby2});
-}# }}}
-
-=item C<width>
-
-Returns the EPS width.
-
-Example:
-
-  print "EPS width is " . abs($eps->width()) . "\n";
-
-=cut
-
-sub width# {{{
-{
-  my $self = shift;
-
-  return ($$self{bbx2} - $$self{bbx1});
-}# }}}
-
-=item C<height>
-
-Returns the EPS height.
-
-Example:
-
-To scale $eps to 72 points high, do:
-
-  $eps->scale(1, 72/$eps->height());
-
-=cut
-
-sub height# {{{
-{
-  my $self = shift;
-
-  return ($$self{bby2} - $$self{bby1});
-}# }}}
-
-=item C<scale(x, y)>
-
-Scales the EPS file. To scale in one direction only, specify 1 as the
-other scale. To scale the EPS file the same in both directions, you
-may use the shortcut of just specifying the one value.
-
-Example:
-
-    $eps->scale(1.2, 0.8); # make wider and shorter
-    $eps->scale(0.5);      # shrink to half size
-
-=cut
-
-sub scale# {{{
-{
-  my $self = shift;
-  my ($x, $y) = @_;
-
-  $y = $x if (!defined $y);
-  croak "bad arguments to scale" if (!defined $x);
-
-  push @{$$self{epsprefix}}, "$x $y scale";
-
-  return 1;
-}# }}}
-
-
-=item C<rotate(deg)>
-
-Rotates the EPS file by C<deg> degrees anti-clockwise. The EPS file is rotated
-about it's own origin (as defined by it's bounding box). To rotate by a particular
-co-ordinate (again, relative to the EPS file, not the main PostScript document),
-use translate, too.
-
-Example:
-
-    $eps->rotate(180);        # turn upside-down
-
-To rotate 30 degrees about point (50,50):
-
-    $eps->translate(50, 50);
-    $eps->rotate(30);
-    $eps->translate(-50, -50);
-    
-=cut
-
-sub rotate# {{{
-{
-  my $self = shift;
-  my ($d) = @_;
-
-  croak "bad arguments to rotate" if (!defined $d);
-
-  push @{$$self{epsprefix}}, "$d rotate";
-
-  return 1;
-}# }}}
-
-
-=item C<translate(x, y)>
-
-Move the EPS file by C<x>,C<y> PostScript points.
-
-Example:
-
-    $eps->translate(10, 10);      # move 10 points in both directions
-
-=cut
-
-sub translate# {{{
-{
-  my $self = shift;
-  my ($x, $y) = @_;
-
-  croak "bad arguments to translate" if (!defined $y);
-
-  push @{$$self{epsprefix}}, "$x $y translate";
-
-  return 1;
-}# }}}
-
-
-=item C<reset>
-
-Clear all translate, rotate and scale operations.
-
-Example:
-
-    $eps->reset();
-
-=cut
-
-sub reset# {{{
-{
-  my $self = shift;
-
-  @{$$self{"epsprefix"}} = ();
-
-  return 1;
-}# }}}
-
-
-=item C<load>
-
-Reads the EPS file into memory, to save reading it from file each time if
-inserted many times into a document. Can not be used with C<preload>.
-
-=cut
-
-sub load# {{{
-{
-  my $self = shift;
-  local *EPS;
-
-  return 1 if (defined $$self{"epsfile"});
-
-  $$self{"epsfile"} = "\%\%BeginDocument: $$self{file}\n";
-  open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
-  while (<EPS>)
-  {
-    $$self{"epsfile"} .= $_;
-  }
-  close EPS;
-  $$self{"epsfile"} .= "\%\%EndDocument\n";
-
-  return 1;
-}# }}}
-
-
-
-=item C<preload(object)>
-
-Experimental: defines the EPS at in the document prolog, and just runs a
-command to insert it each time it is used. C<object> is a PostScript::Simple
-object. If the EPS file is included more than once in the PostScript file then
-this will probably shrink the filesize quite a lot.
-
-Can not be used at the same time as C<load>, or when using EPS objects defined
-from PostScript source.
-
-Example:
-
-    $p = new PostScript::Simple();
-    $e = new PostScript::Simple::EPS(file => "test.eps");
-    $e->preload($p);
-
-=cut
-
-sub preload# {{{
-{
-  my $self = shift;
-  my $ps = shift;
-  my $randcode = "";
-
-  croak "already loaded" if (defined $$self{"epsfile"});
-
-  croak "no PostScript::Simple module provided" if (!defined $ps);
-
-  for my $i (0..7)
-  {
-    $randcode .= chr(int(rand()*26)+65); # yuk
-  }
-
-  $$self{"epsfile"} = "eps$randcode\n";
-
-  $$ps{"psprolog"} .= "/eps$randcode {\n";
-  $$ps{"psprolog"} .= "\%\%BeginDocument: $$self{file}\n";
-  open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
-  while (<EPS>)
-  {
-    $$ps{"psprolog"} .= $_;
-  }
-  close EPS;
-  $$ps{"psprolog"} .= "\%\%EndDocument\n";
-  $$ps{"psprolog"} .= "} def\n";
-
-  return 1;
-}# }}}
-
-
-### PRIVATE
-
-sub _get_include_data# {{{
+sub _get_include_data
 {
   my $self = shift;
   my ($x, $y) = @_;
@@ -495,10 +527,15 @@ sub _get_include_data# {{{
 $$self{bbx2} $$self{bby1} lineto $$self{bbx2} $$self{bby2} lineto
 $$self{bbx1} $$self{bby2} lineto closepath clip newpath\n";
   }
+
   if (defined $$self{"epsfile"}) {
     $data .= $$self{"epsfile"};
+  } elsif (defined $$self{"source"}) {
+    $data .= "\%\%BeginDocument: (undef)\n";
+    $data .= $$self{"source"};
+    $data .= "\%\%EndDocument\n";
   } else {
-    $data .= "\%\%BeginDocument: $$self{file}\n";
+    $data .= "\%\%BeginDocument: ($$self{file})\n";
     open EPS, "< $$self{file}" || croak "can't open eps file $$self{file}";
     while (<EPS>) {
       $data .= $_;
@@ -512,14 +549,14 @@ $$self{bbx1} $$self{bby2} lineto closepath clip newpath\n";
   }
 
   return $data;
-}# }}}
+}
 
-sub _error# {{{
+sub _error
 {
-	my $self = shift;
-	my $msg = shift;
-	$self->{pspages} .= "(error: $msg\n) print flush\n";
-}# }}}
+  my $self = shift;
+  my $msg = shift;
+  $self->{pspages} .= "(error: $msg\n) print flush\n";
+}
 
 
 =back
@@ -536,7 +573,7 @@ for such a feature from several people around the world. A useful importeps
 function that provides scaling and aspect ratio operations was gratefully
 received from Glen Harris, and merged into this module.
 
-Copyright (C) 2002-2003 Matthew C. Newton / Newton Computing
+Copyright (C) 2002-2014 Matthew C. Newton
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
