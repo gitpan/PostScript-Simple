@@ -2,7 +2,7 @@
 
 use strict;
 use lib qw(./lib ../lib t/lib);
-use Test::Simple tests => 7;
+use Test::Simple tests => 6;
 #use Data::Dumper;
 use PostScript::Simple;
 
@@ -15,9 +15,9 @@ $s->output( $f );
 #print STDERR Dumper $s;
 
 # check object
-ok( $s->{usedbox} == 1 );
-ok( $s->{psfunctions} =~ m|/START| );
-ok( index( $s->{pspages}, q[10 ubp 10 ubp 40 ubp 190 ubp box stroke]) > -1 );
+ok( $s->{psresources}{REENCODEFONT} =~ m|/START| );
+ok( index( $s->_buildpage($s->{pspages}[0]),
+           q[10 ubp 10 ubp 40 ubp 190 ubp box stroke]) > -1 );
 
 # check output
 ok( -e $f );

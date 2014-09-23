@@ -10,7 +10,7 @@ use PostScript::Simple::EPS;
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 
 #-------------------------------------------------------------------------------
@@ -380,22 +380,19 @@ sub new
 
     pscomments     => "",       # the following entries store data
     psprolog       => "",       # for the same DSC areas of the
-    psfunctions    => "",       # postscript file.
+    psresources    => {},       # postscript file.
     pssetup        => "",
-    pspages        => "",
+    pspages        => [],
     pstrailer      => "",
     usedunits      => {},       # units that have been used
 
     lastfontsize   => 0,
     pspagecount    => 0,
-    usedcircle     => 0,
-    usedcircletext => 0,
-    usedbox        => 0,
-    usedrotabout   => 0,
-    usedimporteps  => 0,
 
     coordorigin    => 'LeftBottom',
     direction      => 'RightUp',
+
+    lasterror      => undef,
   };
 
   foreach (keys %data) {
@@ -428,7 +425,7 @@ sub _u
     $unit = $$u[1];
     confess "Invalid array" if @$u != 2;
   } else {
-    if ($u =~ /^\s*(\d+(?:\.\d+)?)\s*([a-z][a-z])?\s*$/) {
+    if ($u =~ /^\s*(-?\d+(?:\.\d+)?)\s*([a-z][a-z])?\s*$/) {
       $val = $1;
       $unit = $2 || $self->{units};
     }
@@ -484,6 +481,13 @@ sub init
   my ($m, $d) = (1, 1);
   my ($u, $mm);
 
+# Create a blank "page" for EPS
+  if ($self->{eps}) {
+    $self->{currentpage} = [];
+    $self->{pspages} = [$self->{currentpage}];
+  }
+
+
 # Units
   $self->{units} = lc $self->{units};
 
@@ -525,11 +529,12 @@ sub init
   if ($self->{landscape}) {
     my $swap;
 
-    $self->{psfunctions} .= "/landscape {
-  $self->{bbx2} 0 translate
-  90 rotate
+    $self->{psresources}{landscape} = <<"EOP";
+/landscape {
+  $self->{bbx2} 0 translate 90 rotate
 } bind def
-";
+EOP
+
     # I now think that Portrait is the correct thing here, as the page is
     # rotated.
     $self->{pscomments} .= "\%\%Orientation: Portrait\n";
@@ -546,13 +551,17 @@ sub init
   
 # Clipping
   if ($self->{clip}) {
-    $self->{psfunctions} .= "/pageclip {newpath $self->{bbx1} $self->{bby1} moveto
-$self->{bbx1} $self->{bby2} lineto
-$self->{bbx2} $self->{bby2} lineto
-$self->{bbx2} $self->{bby1} lineto
-$self->{bbx1} $self->{bby1} lineto
-closepath clip} bind def
-";
+    $self->{psresources}{pageclip} = <<"EOP";
+/pageclip {
+  newpath
+  $self->{bbx1} $self->{bby1} moveto
+  $self->{bbx1} $self->{bby2} lineto
+  $self->{bbx2} $self->{bby2} lineto
+  $self->{bbx2} $self->{bby1} lineto
+  $self->{bbx1} $self->{bby1} lineto
+  closepath clip
+} bind def
+EOP
     if ($self->{eps}) { $self->{pssetup} .= "pageclip\n" }
   }
 
@@ -571,7 +580,7 @@ closepath clip} bind def
       $ext = '-iso';
     }
 
-    $self->{psfunctions} .= <<'EOP';
+    $self->{psresources}{REENCODEFONT} = <<'EOP';
 /STARTDIFFENC { mark } bind def
 /ENDDIFFENC { 
 
@@ -662,9 +671,9 @@ closepath clip} bind def
 
 % Reencode the std fonts: 
 EOP
-    
+
     for my $font (@fonts) {
-      $self->{psfunctions} .= "/${font}$ext $encoding /$font REENCODEFONT\n";
+      $self->{psresources}{REENCODEFONT} .= "/${font}$ext $encoding /$font REENCODEFONT\n";
     }
   }
 }
@@ -674,8 +683,9 @@ EOP
 
 =head1 OBJECT METHODS
 
-All object methods return 1 for success or 0 in some error condition (e.g.
-insufficient arguments). Error message text is also drawn on the page.
+Unless otherwise specified, object methods return 1 for success or 0 in some
+error condition (e.g. insufficient arguments). Error message text is also
+drawn on the page.
 
 =over 4
 
@@ -703,7 +713,6 @@ sub newpage
 {
   my $self = shift;
   my $nextpage = shift;
-  my ($x, $y);
   
   if (defined($nextpage)) { $self->{page} = $nextpage; }
 
@@ -713,30 +722,56 @@ sub newpage
     return 0;
   }
 
+  # close old page if required
   if ($self->{pspagecount} != 0) {
-    $self->{pspages} .= "\%\%PageTrailer\npagelevel restore\nshowpage\n";
+    $self->_closepage();
   }
 
-  $self->{pspagecount} ++;
-  $self->{pspages} .= "\%\%Page: $self->{page} $self->{pspagecount}\n";
+  # start new page
+  $self->_openpage();
+
+  return 1;
+}
+
+
+sub _openpage
+{
+  my $self = shift;
+  my ($x, $y);
+
+  $self->{pspagecount}++;
+
+  $self->{currentpage} = [];
+  push @{$self->{pspages}}, $self->{currentpage};
+
+  $self->_addtopage("\%\%Page: $self->{page} $self->{pspagecount}\n");
+
   if ($self->{page} >= 0) {    
     $self->{page} ++;
   } else {
     $self->{page} --;
   }
 
-  $self->{pspages} .= "\%\%BeginPageSetup\n";
-  $self->{pspages} .= "/pagelevel save def\n";
-  if ($self->{landscape}) { $self->{pspages} .= "landscape\n" }
-  if ($self->{clip}) { $self->{pspages} .= "pageclip\n" }
+  $self->_addtopage("\%\%BeginPageSetup\n");
+  $self->_addtopage("/pagelevel save def\n");
+
+  if ($self->{landscape}) { $self->_addtopage("landscape\n"); }
+  if ($self->{clip}) { $self->_addtopage("pageclip\n"); }
+
   ($x, $y) = @{$psorigin{$self->{coordorigin}}};
   $x = $self->{xsize} if ($x < 0);
   $y = $self->{ysize} if ($y < 0);
-  $self->{pspages} .= "$x $y translate\n" if (($x != 0) || ($y != 0));
-  $self->{pspages} .= "\%\%EndPageSetup\n";
-
-  return 1;
+  $self->_addtopage("$x $y translate\n") if (($x != 0) || ($y != 0));
+  $self->_addtopage("\%\%EndPageSetup\n");
 }
+
+sub _closepage
+{
+  my $self = shift;
+
+  $self->_addtopage("\%\%PageTrailer\npagelevel restore\nshowpage\n");
+}
+
 
 
 #-------------------------------------------------------------------------------
@@ -756,77 +791,90 @@ sub _builddocument
   my $self = shift;
   my $title = shift;
   
-  my $page;
+  my $doc;
   my $date = scalar localtime;
   my $user;
 
   $title = 'undefined' unless $title;
 
-  $page = [];
+  $doc = [];
 
 # getlogin is unimplemented on some systems
   eval { $user = getlogin; };
   $user = 'Console' unless $user;
 
 # Comments Section
-  push @$page, "%!PS-Adobe-3.0";
-  push @$page, " EPSF-1.2" if ($self->{eps});
-  push @$page, "\n";
-  push @$page, "\%\%Title: ($title)\n";
-  push @$page, "\%\%LanguageLevel: 1\n";
-  push @$page, "\%\%Creator: PostScript::Simple perl module version $VERSION\n";
-  push @$page, "\%\%CreationDate: $date\n";
-  push @$page, "\%\%For: $user\n";
-  push @$page, \$self->{pscomments};
-#  push @$page, "\%\%DocumentFonts: \n";
+  push @$doc, "%!PS-Adobe-3.0";
+  push @$doc, " EPSF-1.2" if ($self->{eps});
+  push @$doc, "\n";
+  push @$doc, "\%\%Title: ($title)\n";
+  push @$doc, "\%\%LanguageLevel: 1\n";
+  push @$doc, "\%\%Creator: PostScript::Simple perl module version $VERSION\n";
+  push @$doc, "\%\%CreationDate: $date\n";
+  push @$doc, "\%\%For: $user\n";
+  push @$doc, \$self->{pscomments};
+#  push @$doc, "\%\%DocumentFonts: \n";
   if ($self->{eps}) {
-    push @$page, "\%\%BoundingBox: $self->{bbx1} $self->{bby1} $self->{bbx2} $self->{bby2}\n";
+    push @$doc, "\%\%BoundingBox: $self->{bbx1} $self->{bby1} $self->{bbx2} $self->{bby2}\n";
   } else {
-    push @$page, "\%\%Pages: $self->{pspagecount}\n";
+    push @$doc, "\%\%Pages: $self->{pspagecount}\n";
   }
-  push @$page, "\%\%EndComments\n";
+  push @$doc, "\%\%EndComments\n";
   
 # Prolog Section
-  push @$page, "\%\%BeginProlog\n";
-  push @$page, "/ll 1 def systemdict /languagelevel known {\n";
-  push @$page, "/ll languagelevel def } if\n";
-  push @$page, \$self->{psprolog};
-  push @$page, "\%\%BeginResource: PostScript::Simple\n";
-  push @$page, \$self->{psfunctions};
-  foreach my $un (sort keys %{$self->{usedunits}}) {
-    push @$page, $self->{usedunits}{$un} . "\n";
+  push @$doc, "\%\%BeginProlog\n";
+  push @$doc, "/ll 1 def systemdict /languagelevel known {\n";
+  push @$doc, "/ll languagelevel def } if\n";
+  push @$doc, \$self->{psprolog};
+  foreach my $fn (sort keys %{$self->{psresources}}) {
+    push @$doc, "\%\%BeginResource: PostScript::Simple-$fn\n";
+    push @$doc, $self->{psresources}{$fn};
+    push @$doc, "\%\%EndResource\n";
   }
-  push @$page, "\%\%EndResource\n";
-  push @$page, "\%\%EndProlog\n";
+  push @$doc, "\%\%EndProlog\n";
 
 # Setup Section
-  if (length($self->{pssetup}) || ($self->{copies} > 1)) {
-    push @$page, "\%\%BeginSetup\n";
-    if ($self->{copies} > 1) {
-      push @$page, "/#copies " . $self->{copies} . " def\n";
-    }
-    push @$page, \$self->{pssetup};
-    push @$page, "\%\%EndSetup\n";
+  push @$doc, "\%\%BeginSetup\n";
+  foreach my $un (sort keys %{$self->{usedunits}}) {
+    push @$doc, $self->{usedunits}{$un} . "\n";
   }
+  if ($self->{copies} > 1) {
+    push @$doc, "/#copies " . $self->{copies} . " def\n";
+  }
+  push @$doc, \$self->{pssetup};
+  push @$doc, "\%\%EndSetup\n";
 
 # Pages
-  push @$page, \$self->{pspages};
   if ((!$self->{eps}) && ($self->{pspagecount} > 0)) {
-    push @$page, "\%\%PageTrailer\n";
-    push @$page, "pagelevel restore\n";
-    push @$page, "showpage\n";
+    $self->_closepage();
+  }
+
+  foreach my $page (@{$self->{pspages}}) {
+    push @$doc, $self->_buildpage($page);
   }
 
 # Trailer Section
   if (length($self->{pstrailer})) {
-    push @$page, "\%\%Trailer\n";
-    push @$page, \$self->{pstrailer};
+    push @$doc, "\%\%Trailer\n";
+    push @$doc, \$self->{pstrailer};
   }
-  push @$page, "\%\%EOF\n";
+  push @$doc, "\%\%EOF\n";
   
-  return $page;
+  return $doc;
 }
 
+sub _buildpage
+{
+  my ($self, $page) = @_;
+
+  my $data = "";
+
+  foreach my $statement (@$page) {
+    $data .= $$statement[1];
+  }
+
+  return $data;
+}
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -968,13 +1016,52 @@ sub setcolour
   $b = 0 + sprintf("%0.5f", $b / 255);
 
   if ($self->{colour}) {
-    $self->{pspages} .= "$r $g $b setrgbcolor\n";
+    $self->_addtopage("$r $g $b setrgbcolor\n");
   } else {
     # Better colour->grey conversion than just 0.33 of each:
     $r = 0.3*$r + 0.59*$g + 0.11*$b;
     $r = 0 + sprintf("%0.5f", $r / 255);
-    $self->{pspages} .= "$r setgray\n";
+    $self->_addtopage("$r setgray\n");
   }
+  
+  return 1;
+}
+
+
+#-------------------------------------------------------------------------------
+
+=item C<setcmykcolour(cyan, magenta, yellow, black)>
+
+Sets the new drawing colour to the CMYK values specified in C<cyan>,
+C<magenta>, C<yellow} and C<black>. The values range from 0 to 1. Note that
+PostScript::Simple does not do any colour management, so the output colour (as
+also with C<setcolour>) may vary according to output device.
+
+Example:
+
+    # set new colour to a shade of blue
+    $p->setcmykcolour(0.1, 0.5, 0, 0.2);
+    # set new colour to black
+    $p->setcmykcolour(0, 0, 0, 1);
+    # set new colour to a rich black
+    $p->setcmykcolour(0.5, 0.5, 0.5, 1);
+
+=cut
+
+sub setcmykcolour
+{
+  my $self = shift;
+  my ($c, $m, $y, $k) = @_;
+
+  if ( @_ != 4 ) {
+    $self->_error( "setcmykcolour given incorrect number of arguments" );
+    return 0;
+  }
+
+  # Don't currently convert to grey if colour is not set. Patches welcome for
+  # something that gives a reasonable approximation...
+
+  $self->_addtopage("$c $m $y $k setcmykcolor\n");
   
   return 1;
 }
@@ -1004,7 +1091,7 @@ sub setlinewidth
 
   $width = "0.4 bp" if $width eq "thin";
 
-  $self->{pspages} .= $self->_u($width) . "setlinewidth\n";
+  $self->_addtopage($self->_u($width) . "setlinewidth\n");
   
   return 1;
 }
@@ -1052,7 +1139,7 @@ sub line
   
   $self->newpath;
   $self->moveto($x1, $y1);
-  $self->{pspages} .= $self->_uxy($x2, $y2) . "lineto stroke\n";
+  $self->_addtopage($self->_uxy($x2, $y2) . "lineto stroke\n");
   
   return 1;
 }
@@ -1083,18 +1170,24 @@ sub linextend
 {
   my $self = shift;
   my ($x, $y) = @_;
-  
+
   unless ( @_ == 2 ) {
     $self->_error( "wrong number of args for linextend" );
     return 0;
   }
-  
+
   my $out = $self->_uxy($x, $y) . "lineto stroke\n";
-  $self->{pspages} =~ s/eto stroke\n$/eto\n$out/;
-  
+
+  my $p = $self->{currentpage};
+  my $last = pop @$p;
+  $last = $$last[1];
+  $last =~ s/eto stroke\n$/eto\n$out/;
+  $self->_addtopage($last);
+
+  # FIXMEFIXMEFIXME
   # perhaps we need something like $self->{_lastcommand} to know if operations
   # are valid, rather than using a regexp?
-    
+
   return 1;
 }
 
@@ -1150,11 +1243,11 @@ sub arc
   }
 
   $self->newpath;
-  $self->{pspages} .= $self->_uxy($x, $y) . $self->_u($r) . "$sa $ea arc ";
+  $self->_addtopage($self->_uxy($x, $y) . $self->_u($r) . "$sa $ea arc ");
   if ($opt{'filled'}) {
-    $self->{pspages} .= "fill\n"
+    $self->_addtopage("fill\n");
   } else {
-    $self->{pspages} .= "stroke\n"
+    $self->_addtopage("stroke\n");
   }
   
   return 1;
@@ -1258,21 +1351,24 @@ sub polygon
   my $savestate = ($xoffset || $yoffset || $rotate) ? 1 : 0 ;
   
   if ( $savestate ) {
-    $self->{pspages} .= "gsave ";
+    $self->_addtopage("gsave ");
   }
 
   if ($xoffset || $yoffset) {
-    $self->{pspages} .= $self->_uxy($xoffset, $yoffset) . "translate\n";
+    $self->_addtopage($self->_uxy($xoffset, $yoffset) . "translate\n");
   }
 
   if ($rotate) {
-    if (!$self->{usedrotabout}) {
-      $self->{psfunctions} .= "/rotabout {3 copy pop translate rotate exch ";
-      $self->{psfunctions} .= "0 exch sub exch 0 exch sub translate} def\n";
-      $self->{usedrotabout} = 1;
+    unless (defined $self->{psresources}{rotabout}) {
+      $self->{psresources}{rotabout} = <<'EOP';
+/rotabout {
+  3 copy pop translate rotate exch
+  0 exch sub exch 0 exch sub translate
+} def
+EOP
     }
 
-    $self->{pspages} .= $self->_uxy($rotatex, $rotatey) . "$rotate rotabout\n";
+    $self->_addtopage($self->_uxy($rotatex, $rotatey) . "$rotate rotabout\n");
   }
   
   $self->newpath;
@@ -1282,17 +1378,17 @@ sub polygon
     my $x = shift;
     my $y = shift;
     
-    $self->{pspages} .= $self->_uxy($x, $y) . "lineto ";
+    $self->_addtopage($self->_uxy($x, $y) . "lineto ");
   }
 
   if ($opt{'filled'}) {
-    $self->{pspages} .= "fill\n";
+    $self->_addtopage("fill\n");
   } else {
-    $self->{pspages} .= "stroke\n";
+    $self->_addtopage("stroke\n");
   }
 
   if ( $savestate ) {
-    $self->{pspages} .= "grestore\n";
+    $self->_addtopage("grestore\n");
   }
   
   return 1;
@@ -1339,14 +1435,16 @@ sub circle
     return 0;
   }
 
-  if (!$self->{usedcircle}) {
-    $self->{psfunctions} .= "/circle {newpath 0 360 arc closepath} bind def\n";
-    $self->{usedcircle} = 1;
+  unless (defined $self->{psresources}{circle}) {
+    $self->{psresources}{circle} = "/circle {newpath 0 360 arc closepath} bind def\n";
   }
 
-  $self->{pspages} .= $self->_uxy($x, $y) . $self->_u($r) . "circle ";
-  if ($opt{'filled'}) { $self->{pspages} .= "fill\n" }
-  else {$self->{pspages} .= "stroke\n" }
+  $self->_addtopage($self->_uxy($x, $y) . $self->_u($r) . "circle ");
+  if ($opt{'filled'}) {
+    $self->_addtopage("fill\n");
+  } else {
+    $self->_addtopage("stroke\n");
+  }
   
   return 1;
 }
@@ -1399,8 +1497,8 @@ sub circletext
     return 0;
   }
 
-  if (!$self->{usedcircletext}) {
-    $self->{psfunctions} .= <<'EOCT';
+  unless (defined $self->{psresources}{circletext}) {
+    $self->{psresources}{circletext} = <<'EOP';
 /outsidecircletext
   { $circtextdict begin
       /radius exch def
@@ -1453,19 +1551,18 @@ $circtextdict begin
     } def
   /pi 3.1415926 def
 end
-EOCT
-    $self->{usedcircletext} = 1;
+EOP
   }
 
-  $self->{pspages} .= "gsave\n";
-  $self->{pspages} .= "  " . $self->_uxy($x, $y) . "translate\n";
-  $self->{pspages} .= "  ($text) $self->{lastfontsize} $a " . $self->_u($r);
+  $self->_addtopage("gsave\n");
+  $self->_addtopage("  " . $self->_uxy($x, $y) . "translate\n");
+  $self->_addtopage("  ($text) $self->{lastfontsize} $a " . $self->_u($r));
   if ($opt{'align'} && ($opt{'align'} eq "outside")) {
-    $self->{pspages} .= "outsidecircletext\n";
+    $self->_addtopage("outsidecircletext\n");
   } else {
-    $self->{pspages} .= "insidecircletext\n";
+    $self->_addtopage("insidecircletext\n");
   }
-  $self->{pspages} .= "grestore\n";
+  $self->_addtopage("grestore\n");
   
   return 1;
 }
@@ -1520,21 +1617,24 @@ sub box
     $opt{'filled'} = 0;
   }
   
-  unless ($self->{usedbox}) {
-    $self->{psfunctions} .= "/box {
+  unless (defined $self->{psresources}{box}) {
+    $self->{psresources}{box} = <<'EOP';
+/box {
   newpath 3 copy pop exch 4 copy pop pop
   8 copy pop pop pop pop exch pop exch
   3 copy pop pop exch moveto lineto
   lineto lineto pop pop pop pop closepath
 } bind def
-";
-    $self->{usedbox} = 1;
+EOP
   }
 
-  $self->{pspages} .= $self->_uxy($x1, $y1);
-  $self->{pspages} .= $self->_uxy($x2, $y2) . "box ";
-  if ($opt{'filled'}) { $self->{pspages} .= "fill\n" }
-  else {$self->{pspages} .= "stroke\n" }
+  $self->_addtopage($self->_uxy($x1, $y1));
+  $self->_addtopage($self->_uxy($x2, $y2) . "box ");
+  if ($opt{'filled'}) {
+    $self->_addtopage("fill\n");
+  } else {
+    $self->_addtopage("stroke\n");
+  }
 
   return 1;
 }
@@ -1564,7 +1664,7 @@ sub setfont
   }
 
 # set font y size XXXXX
-  $self->{pspages} .= "/$name findfont $size scalefont setfont\n";
+  $self->_addtopage("/$name findfont $size scalefont setfont\n");
 
   $self->{lastfontsize} = $size;
 
@@ -1659,7 +1759,7 @@ sub text
         if $opt{ 'align' } eq 'center' or $opt{ 'align' } eq 'centre';
   }
   
-  $self->{pspages} .= "($text) $rot $align $rot_m\n";
+  $self->_addtopage("($text) $rot $align $rot_m\n");
 
   return 1;
 }
@@ -1691,9 +1791,9 @@ sub curve
 
   $self->newpath;
   $self->moveto($x1, $y1);
-  $self->{pspages} .= $self->_uxy($x2, $y2);
-  $self->{pspages} .= $self->_uxy($x3, $y3);
-  $self->{pspages} .= $self->_uxy($x4, $y4) . "curveto stroke\n";
+  $self->_addtopage($self->_uxy($x2, $y2));
+  $self->_addtopage($self->_uxy($x3, $y3));
+  $self->_addtopage($self->_uxy($x4, $y4) . "curveto stroke\n");
 
   return 1;
 }
@@ -1724,8 +1824,13 @@ sub curvextend
   $out .= $self->_uxy($x2, $y2);
   $out .= $self->_uxy($x3, $y3) . "curveto stroke\n";
 
+  # FIXMEFIXMEFIXME
   # curveto may follow a lineto etc...
-  $self->{pspages} =~ s/eto stroke\n$/eto\n$out/;
+  my $p = $self->{currentpage};
+  my $last = pop @$p;
+  $last = $$last[1];
+  $last =~ s/eto stroke\n$/eto\n$out/;
+  $self->_addtopage($last);
   
   return 1;
 }
@@ -1744,7 +1849,7 @@ sub newpath
 {
   my $self = shift;
 
-  $self->{pspages} .= "newpath\n";
+  $self->_addtopage("newpath\n");
 
   return 1;
 }
@@ -1764,7 +1869,7 @@ sub moveto
   my $self = shift;
   my ($x, $y) = @_;
 
-  $self->{pspages} .= $self->_uxy($x, $y) . "moveto\n";
+  $self->_addtopage($self->_uxy($x, $y) . "moveto\n");
 
   return 1;
 }
@@ -1933,8 +2038,45 @@ sub importeps
 }
 
 
+#-------------------------------------------------------------------------------
+
+=item C<err()>
+
+Returns the last error generated.
+
+Example:
+
+  unless ($ps->setcolour("purplewithyellowspots")) {
+    print $ps->err();
+  }
+
+  # prints "bad colour name 'purplewithyellowspots'";
+
+=cut
+
+sub err {
+  my $self = shift;
+
+  return $self->{lasterror};
+}
+
+
 ################################################################################
 # PRIVATE methods
+
+sub _addtopage
+{
+  my ($self, $data) = @_;
+
+  if (defined $self->{currentpage}) {
+    push @{$self->{currentpage}}, ["ps", $data];
+  } else {
+    confess "internal page error";
+  }
+}
+
+
+#-------------------------------------------------------------------------------
 
 sub _add_eps
 {
@@ -1958,8 +2100,8 @@ sub _add_eps
     return 0;
   }
 
-  unless ($self->{usedimporteps}) {
-    $self->{psfunctions} .= <<'EOEPS';
+  unless (defined $self->{psresources}{importeps}) {
+    $self->{psresources}{importeps} = <<'EOP';
 /BeginEPSF { /b4_Inc_state save def /dict_count countdictstack def
 /op_count count 1 sub def userdict begin /showpage { } def 0 setgray
 0 setlinecap 1 setlinewidth 0 setlinejoin 10 setmiterlimit [ ]
@@ -1967,17 +2109,18 @@ sub _add_eps
 false setstrokeadjust false setoverprint } if } if } bind def
 /EndEPSF { count op_count sub {pop} repeat countdictstack dict_count
 sub {end} repeat b4_Inc_state restore } bind def
-EOEPS
-    $self->{usedimporteps} = 1;
+EOP
   }
 
   ($epsobj, $xpos, $ypos) = @_;
 
-  $self->{pspages} .= "BeginEPSF\n";
-  $self->{pspages} .= $self->_uxy($xpos, $ypos) . "translate\n";
-  $self->{pspages} .= $self->_uxy(1, 1) . "scale\n";
-  $self->{pspages} .= $epsobj->_get_include_data($xpos, $ypos);
-  $self->{pspages} .= "EndEPSF\n";
+  my $eps = "BeginEPSF\n";
+  $eps .= $self->_uxy($xpos, $ypos) . "translate\n";
+  $eps .= $self->_uxy(1, 1) . "scale\n";
+  $eps .= $epsobj->_get_include_data($xpos, $ypos);
+  $eps .= "EndEPSF\n";
+
+  $self->_addtopage($eps);
   
   return 1;
 }
@@ -1989,7 +2132,8 @@ sub _error {
   my $self = shift;
   my $msg = shift;
 
-  $self->{pspages} .= "(error: $msg\n) print flush\n";
+  $self->{lasterror} = $msg;
+  $self->_addtopage("(error: $msg\n) print flush\n");
 }
 
 

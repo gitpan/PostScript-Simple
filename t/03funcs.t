@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use lib qw(./lib ../lib t/lib);
-use Test::Simple tests => 44;
+use Test::Simple tests => 51;
 #use Data::Dumper;
 use PostScript::Simple;
 
@@ -21,6 +21,9 @@ ok( ! $s->setcolour('Geddy lee') );
 ok( ! $s->setcolour(120, 240) );
 ok( $s->setcolour(120, 240, 0) );
 
+ok( $s->setcmykcolour(0.2, 0.4, 0.6, 0.8) );
+ok( ! $s->setcmykcolour(0.2, 0.4, 0.6) );
+ok( ! $s->setcmykcolour("black") );
 
 ok( $s->setlinewidth(1) );
 ok( ! $s->setlinewidth );
@@ -30,6 +33,7 @@ ok( $s->line(10,10, 10,20) );
 ok( ! $s->line(10,10, 10,20, 50, 50) );
 ok( ! $s->line(10,10, 10) );
 ok( $s->line(10,10, 10,20, 50, 50, 50) );
+ok( $s->line(10,-10, -10,20, 0, 127, 255) );
 
 
 ok( $s->linextend(100,100) );
@@ -74,11 +78,21 @@ ok( $s->curvextend(110,330, 210,330, 210,320) );
 ok( ! $s->curvextend(110,330, 210,330, 210) );
 
 
-ok( length($s->{'pspages'}) eq length(CANNED()) );
-ok( $s->{'pspages'} eq CANNED() );
+my $pages = $s->_buildpage($s->{pspages}[0]);
+#print STDERR "\n>>>" . $pages . "<<<\n";
 
-ok( length($s->{'psfunctions'}) eq length(FUNCS()) );
-ok( $s->{'psfunctions'} eq FUNCS() );
+ok( length($pages) eq length(CANNED()) );
+ok( $pages eq CANNED() );
+
+#print STDERR "\n>>>" . $s->{'psfunctions'} . "<<<\n";
+
+ok( length($s->{psresources}{REENCODEFONT}) eq length(REENCODEFONT()) );
+ok( $s->{psresources}{REENCODEFONT} eq REENCODEFONT() );
+
+ok( length($s->{psresources}{box}) eq length(RESBOX()) );
+ok( $s->{psresources}{box} eq RESBOX() );
+
+ok( scalar keys %{$s->{psresources}} == 4 );
 
 ok( $s->output('x03.eps') );
 unlink 'x03.eps';
@@ -87,7 +101,7 @@ unlink 'x03.eps';
 
 ###
 
-sub FUNCS {
+sub REENCODEFONT {
 return '/STARTDIFFENC { mark } bind def
 /ENDDIFFENC { 
 
@@ -190,9 +204,11 @@ return '/STARTDIFFENC { mark } bind def
 /Times-BoldItalic-iso ISOLatin1Encoding /Times-BoldItalic REENCODEFONT
 /Times-Italic-iso ISOLatin1Encoding /Times-Italic REENCODEFONT
 /Symbol-iso ISOLatin1Encoding /Symbol REENCODEFONT
-/rotabout {3 copy pop translate rotate exch 0 exch sub exch 0 exch sub translate} def
-/circle {newpath 0 360 arc closepath} bind def
-/box {
+';
+}
+
+sub RESBOX {
+return '/box {
   newpath 3 copy pop exch 4 copy pop pop
   8 copy pop pop pop pop exch pop exch
   3 copy pop pop exch moveto lineto
@@ -211,6 +227,11 @@ return '(error: Do not use newpage for eps files!
 (error: setcolour given invalid arguments: 120, 240, undef
 ) print flush
 0.47059 0.94118 0 setrgbcolor
+0.2 0.4 0.6 0.8 setcmykcolor
+(error: setcmykcolour given incorrect number of arguments
+) print flush
+(error: setcmykcolour given incorrect number of arguments
+) print flush
 1 ubp setlinewidth
 (error: setlinewidth not given a width
 ) print flush
@@ -224,7 +245,11 @@ newpath
 0.19608 0.19608 0.19608 setrgbcolor
 newpath
 10 ubp 10 ubp moveto
-10 ubp 20 ubp lineto
+10 ubp 20 ubp lineto stroke
+0 0.49804 1 setrgbcolor
+newpath
+10 ubp -10 ubp moveto
+-10 ubp 20 ubp lineto
 100 ubp 100 ubp lineto stroke
 (error: wrong number of args for linextend
 ) print flush
